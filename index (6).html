@@ -1,0 +1,2174 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Avaliação BCM</title>
+  <!-- Calibri is a system font; no external font import needed -->
+  <style>
+    /* Force Calibri as primary font stack */
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --bg: #f0f4f8;
+      --surface: #ffffff;
+      --surface2: #e8edf3;
+      --border: #c9d4e0;
+      --accent: #1a4d7c;
+      --accent2: #2d7dd2;
+      --accent-light: #ddeeff;
+      --text: #1a2535;
+      --text-muted: #5a6a80;
+      --green: #2a7a5a;
+      --green-bg: #edf7f3;
+      --red: #b83232;
+      --red-bg: #fdf0f0;
+      --orange: #b86a00;
+      --shadow: 0 2px 16px rgba(26,77,124,0.10);
+      --radius: 12px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Calibri', Calibri, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ── Header ── */
+    header {
+      background: var(--accent); color: #fff; padding: 0 40px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 68px; box-shadow: 0 2px 12px rgba(26,77,124,0.3);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .header-brand { display: flex; align-items: center; gap: 14px; }
+    .header-logo { width: 38px; height: 38px; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+    .header-logo svg { width: 22px; height: 22px; fill: #fff; }
+    .header-title { font-family: 'Calibri', Calibri, sans-serif; font-size: 1.35rem; letter-spacing: 0.01em; }
+    .header-subtitle { font-size: 0.72rem; opacity: 0.65; letter-spacing: 0.06em; text-transform: uppercase; margin-top: 1px; }
+    .header-badge { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); border-radius: 20px; padding: 6px 16px; font-size: 0.78rem; letter-spacing: 0.04em; }
+
+    /* ── Nav ── */
+    nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 40px; display: flex; gap: 4px; }
+    .tab-btn { padding: 14px 22px; border: none; background: none; font-family: 'Calibri', sans-serif; font-size: 0.88rem; font-weight: 500; color: var(--text-muted); cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; letter-spacing: 0.02em; position: relative; top: 1px; }
+    .tab-btn:hover { color: var(--accent2); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent2); }
+
+    /* ── Main ── */
+    main { max-width: 1200px; margin: 40px auto; padding: 0 24px 60px; }
+    .section { display: none; }
+    .section.active { display: block; animation: fadeUp 0.35s ease; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+
+    /* ── Card ── */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 24px; }
+    .card-header { background: linear-gradient(135deg, var(--accent) 0%, #1e5a9a 100%); padding: 22px 28px; display: flex; align-items: center; gap: 14px; }
+    .card-header-icon { width: 42px; height: 42px; background: rgba(255,255,255,0.15); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .card-header-icon svg { width: 22px; height: 22px; stroke: #fff; fill: none; stroke-width: 1.8; }
+    .card-header h2 { font-family: 'Calibri', Calibri, sans-serif; font-size: 1.15rem; color: #fff; font-weight: 400; }
+    .card-header p { font-size: 0.78rem; color: rgba(255,255,255,0.65); margin-top: 2px; }
+    .card-body { padding: 28px; }
+
+    /* ── Form ── */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .form-group { display: flex; flex-direction: column; gap: 7px; }
+    .form-group.full { grid-column: 1 / -1; }
+    label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; }
+    label span.req { color: var(--red); margin-left: 2px; }
+    input[type="text"], input[type="number"], input[type="date"], select {
+      font-family: 'Calibri', sans-serif; font-size: 0.92rem; color: var(--text);
+      background: var(--bg); border: 1.5px solid var(--border); border-radius: 8px;
+      padding: 11px 14px; transition: border-color 0.2s, box-shadow 0.2s; outline: none;
+      -webkit-appearance: none; appearance: none;
+    }
+    input[type="text"]:focus, input[type="number"]:focus, input[type="date"]:focus, select:focus {
+      border-color: var(--accent2); box-shadow: 0 0 0 3px rgba(45,125,210,0.12); background: #fff;
+    }
+    .input-unit { position: relative; }
+    .input-unit input { width: 100%; padding-right: 52px; }
+    .input-unit .unit { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 0.78rem; font-weight: 600; color: var(--text-muted); pointer-events: none; }
+    .select-wrapper { position: relative; }
+    .select-wrapper::after { content: ''; position: absolute; right: 14px; top: 50%; transform: translateY(-50%); width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid var(--text-muted); pointer-events: none; }
+    .select-wrapper select { width: 100%; padding-right: 36px; }
+    .radio-group { display: flex; gap: 10px; flex-wrap: wrap; }
+    .radio-option { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border: 1.5px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.2s; font-size: 0.9rem; background: var(--bg); flex: 1; min-width: 110px; }
+    .radio-option:hover { border-color: var(--accent2); background: var(--accent-light); }
+    .radio-option input[type="radio"] { display: none; }
+    .radio-option .dot { width: 16px; height: 16px; border: 2px solid var(--border); border-radius: 50%; flex-shrink: 0; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+    .radio-option input[type="radio"]:checked + .dot { border-color: var(--accent2); background: var(--accent2); box-shadow: 0 0 0 3px rgba(45,125,210,0.18); }
+    .radio-option input[type="radio"]:checked + .dot::after { content: ''; width: 6px; height: 6px; background: #fff; border-radius: 50%; }
+    .radio-option:has(input:checked) { border-color: var(--accent2); background: var(--accent-light); color: var(--accent); font-weight: 500; }
+    .toggle-group { display: flex; gap: 10px; }
+    .toggle-option { flex: 1; padding: 11px; border: 1.5px solid var(--border); border-radius: 8px; cursor: pointer; text-align: center; font-size: 0.9rem; transition: all 0.2s; background: var(--bg); display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .toggle-option input[type="radio"] { display: none; }
+    .toggle-option:has(input:checked).yes { border-color: var(--green); background: var(--green-bg); color: var(--green); font-weight: 600; }
+    .toggle-option:has(input:checked).no  { border-color: var(--red);   background: var(--red-bg);   color: var(--red);   font-weight: 600; }
+    .toggle-option:hover { border-color: var(--accent2); }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+    .btn-row { display: flex; gap: 12px; justify-content: flex-end; margin-top: 28px; }
+    .btn { font-family: 'Calibri', sans-serif; font-size: 0.9rem; font-weight: 600; padding: 12px 28px; border-radius: 8px; border: none; cursor: pointer; transition: all 0.2s; letter-spacing: 0.02em; }
+    .btn-secondary { background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--border); color: var(--text); }
+    .btn-primary { background: var(--accent2); color: #fff; box-shadow: 0 3px 10px rgba(45,125,210,0.3); }
+    .btn-primary:hover { background: #1a6bbf; box-shadow: 0 4px 16px rgba(45,125,210,0.4); transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(0); }
+
+    /* ── Toast ── */
+    #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--green); color: #fff; padding: 14px 28px; border-radius: 40px; font-size: 0.9rem; font-weight: 500; box-shadow: 0 6px 24px rgba(0,0,0,0.15); transition: transform 0.35s cubic-bezier(.34,1.56,.64,1); z-index: 999; display: flex; align-items: center; gap: 10px; }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── List ── */
+    .list-controls { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; }
+    .search-box { flex: 1; font-family: 'Calibri', sans-serif; font-size: 0.9rem; padding: 10px 16px; border: 1.5px solid var(--border); border-radius: 8px; background: var(--surface); outline: none; transition: border-color 0.2s; }
+    .search-box:focus { border-color: var(--accent2); }
+    .count-badge { background: var(--accent-light); color: var(--accent); border: 1px solid #b3d6f5; border-radius: 20px; padding: 6px 14px; font-size: 0.8rem; font-weight: 600; white-space: nowrap; }
+    .patient-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    .patient-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; transition: box-shadow 0.2s, transform 0.2s; position: relative; overflow: hidden; }
+    .patient-card:hover { box-shadow: 0 4px 20px rgba(26,77,124,0.15); transform: translateY(-2px); }
+    .patient-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--accent2), #56a8f5); }
+    .patient-card.pacemaker-card::before { background: linear-gradient(90deg, #888, #bbb); }
+    .pc-name { font-family: 'Calibri', Calibri, sans-serif; font-size: 1.05rem; color: var(--text); margin-bottom: 10px; }
+    .pc-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .tag { font-size: 0.72rem; padding: 3px 10px; border-radius: 20px; font-weight: 500; }
+    .tag-gender { background: #e8f0ff; color: #2952a3; }
+    .tag-turn   { background: #fff4e0; color: #a0620a; }
+    .tag-yes    { background: #fde8e8; color: var(--red); }
+    .tag-no     { background: #e8f7f0; color: var(--green); }
+    .tag-bcm    { background: #f0e8ff; color: #6a2da3; }
+    .tag-normo  { background: var(--green-bg); color: var(--green); }
+    .tag-sobre  { background: var(--red-bg); color: var(--red); }
+    .tag-na     { background: #f0f0f0; color: #888; }
+    .pc-doctor { font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+    .pc-doctor::before { content: '⚕'; font-size: 0.85rem; }
+    .pc-actions { display: flex; gap: 8px; margin-top: 14px; border-top: 1px solid var(--border); padding-top: 12px; }
+    .btn-action { flex: 1; font-family: 'Calibri', sans-serif; font-size: 0.78rem; font-weight: 600; padding: 7px 10px; border-radius: 7px; border: none; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 5px; }
+    .btn-bcm { background: #f0e8ff; color: #6a2da3; }
+    .btn-bcm:hover { background: #e0d0ff; }
+    .btn-bcm:disabled { background: #f0f0f0; color: #aaa; cursor: not-allowed; }
+    .btn-del-sm { background: #fde8e8; color: var(--red); }
+    .btn-del-sm:hover { background: #fbd0d0; }
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+    .empty-state svg { width: 52px; height: 52px; opacity: 0.3; margin-bottom: 16px; }
+    .empty-state p { font-size: 0.95rem; }
+
+    /* ── BCM Modal ── */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(10,20,40,0.55); z-index: 200; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(3px); }
+    .modal-overlay.open { display: flex; animation: fadeIn 0.2s ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .modal { background: var(--surface); border-radius: var(--radius); width: 100%; max-width: 680px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(10,20,40,0.3); animation: slideUp 0.28s cubic-bezier(.34,1.46,.64,1); }
+    @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .modal-header { background: linear-gradient(135deg, #4a1a8c 0%, #6a3ab2 100%); padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 1; }
+    .modal-header-left { display: flex; align-items: center; gap: 12px; }
+    .modal-header-icon { width: 38px; height: 38px; background: rgba(255,255,255,0.15); border-radius: 9px; display: flex; align-items: center; justify-content: center; }
+    .modal-header-icon svg { width: 20px; height: 20px; stroke: #fff; fill: none; stroke-width: 1.8; }
+    .modal-title { font-family: 'Calibri', Calibri, sans-serif; font-size: 1.05rem; color: #fff; font-weight: 400; }
+    .modal-patient { font-size: 0.76rem; color: rgba(255,255,255,0.65); margin-top: 2px; }
+    .modal-close { width: 30px; height: 30px; background: rgba(255,255,255,0.12); border: none; border-radius: 7px; color: #fff; font-size: 1rem; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; justify-content: center; }
+    .modal-close:hover { background: rgba(255,255,255,0.25); }
+    .modal-body { padding: 24px; }
+    .modal-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .modal-form-grid .full { grid-column: 1 / -1; }
+
+    /* BCM history table */
+    .bcm-history { margin-top: 20px; }
+    .bcm-history-title { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .bcm-history-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .bcm-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    .bcm-table th { background: var(--bg); padding: 8px 12px; text-align: left; font-size: 0.72rem; font-weight: 600; color: var(--text-muted); letter-spacing: 0.05em; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+    .bcm-table td { padding: 9px 12px; border-bottom: 1px solid #eef1f5; vertical-align: middle; }
+    .bcm-table tr:last-child td { border-bottom: none; }
+    .bcm-table tr:hover td { background: #f7f9fc; }
+    .btn-del-row { background: none; border: none; color: #ccc; cursor: pointer; font-size: 0.85rem; padding: 3px 6px; border-radius: 5px; transition: all 0.2s; }
+    .btn-del-row:hover { background: #fde8e8; color: var(--red); }
+    .no-bcm { text-align: center; padding: 18px; color: var(--text-muted); font-size: 0.85rem; }
+    .val-green { color: var(--green); font-weight: 600; }
+    .val-red   { color: var(--red);   font-weight: 600; }
+
+    /* Pacemaker notice inside modal */
+    .pace-notice { background: #f5f5f5; border: 1px solid #ddd; border-radius: 10px; padding: 20px; text-align: center; color: #888; font-size: 0.9rem; margin-top: 8px; }
+    .pace-notice svg { display: block; margin: 0 auto 10px; opacity: 0.4; }
+
+    /* ── Intro / Dashboard ── */
+    .intro-hero { background: linear-gradient(135deg, var(--accent) 0%, #1e6aaa 100%); border-radius: var(--radius); padding: 36px 40px; color: #fff; margin-bottom: 24px; position: relative; overflow: hidden; }
+    .intro-hero::after { content: 'BCM'; position: absolute; right: -10px; bottom: -20px; font-family: 'Calibri', Calibri, sans-serif; font-size: 9rem; opacity: 0.07; pointer-events: none; line-height: 1; }
+    .intro-hero h1 { font-family: 'Calibri', Calibri, sans-serif; font-size: 1.9rem; font-weight: 400; margin-bottom: 8px; }
+    .intro-hero p { font-size: 0.9rem; opacity: 0.8; max-width: 540px; line-height: 1.65; }
+    .stat-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; display: flex; align-items: center; gap: 14px; }
+    .stat-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .stat-icon svg { width: 20px; height: 20px; stroke: #fff; fill: none; stroke-width: 1.8; }
+    .stat-icon.blue   { background: var(--accent2); }
+    .stat-icon.green  { background: #2a7a5a; }
+    .stat-icon.red    { background: #b83232; }
+    .stat-icon.orange { background: #c07800; }
+    .stat-num { font-family: 'Calibri', Calibri, sans-serif; font-size: 1.7rem; color: var(--text); line-height: 1; }
+    .stat-lbl { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+    .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+    .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; }
+    .chart-card.wide { grid-column: 1 / -1; }
+    .chart-title { font-family: 'Calibri', Calibri, sans-serif; font-size: 0.95rem; color: var(--text); margin-bottom: 4px; font-weight: 400; }
+    .chart-subtitle { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 18px; }
+    .chart-wrap { position: relative; }
+    .chart-wrap canvas { display: block; }
+    .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 14px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--text-muted); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+    /* ── Month filter ── */
+    .month-filter-bar {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px 20px; margin-bottom: 22px;
+      box-shadow: var(--shadow);
+    }
+    .month-filter-label {
+      font-size: 0.78rem; font-weight: 600; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap;
+    }
+    .month-pills { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+    .month-pill {
+      font-family: 'Calibri', sans-serif; font-size: 0.78rem; font-weight: 500;
+      padding: 5px 13px; border-radius: 20px; border: 1.5px solid var(--border);
+      background: var(--bg); color: var(--text-muted); cursor: pointer;
+      transition: all 0.18s; white-space: nowrap;
+    }
+    .month-pill:hover { border-color: var(--accent2); color: var(--accent2); background: var(--accent-light); }
+    .month-pill.active { background: var(--accent2); border-color: var(--accent2); color: #fff; font-weight: 600; }
+    .month-pill.all { border-color: var(--accent); }
+    .month-pill.all.active { background: var(--accent); border-color: var(--accent); }
+    .month-context { font-size: 0.76rem; color: var(--text-muted); white-space: nowrap; }
+    .month-context strong { color: var(--accent); }
+
+    @media (max-width: 700px) {
+      .form-grid, .modal-form-grid, .charts-grid, .stat-cards { grid-template-columns: 1fr; }
+      .charts-grid .wide { grid-column: 1; }
+      header { padding: 0 20px; }
+      nav { padding: 0 16px; }
+      main { padding: 0 16px 60px; }
+    }
+
+    /* ── Results section ── */
+    .results-controls {
+      display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 16px;
+    }
+    .results-controls .search-box { flex: 1; min-width: 200px; }
+    .res-month-bar {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 12px 18px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      box-shadow: var(--shadow);
+    }
+    .res-month-bar .month-filter-label { flex-shrink: 0; }
+    .res-patient-block {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      box-shadow: var(--shadow); margin-bottom: 18px; overflow: hidden;
+    }
+    .res-patient-header {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+      padding: 16px 22px; cursor: pointer; user-select: none;
+      border-bottom: 1px solid transparent; transition: background 0.15s;
+    }
+    .res-patient-header:hover { background: #f7f9fc; }
+    .res-patient-header.open { border-bottom-color: var(--border); background: #f7f9fc; }
+    .res-patient-left { display: flex; align-items: center; gap: 14px; }
+    .res-avatar {
+      width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center;
+      justify-content: center; font-family: 'Calibri', Calibri, sans-serif; font-size: 1rem;
+      color: #fff; flex-shrink: 0;
+    }
+    .res-avatar.male   { background: linear-gradient(135deg, var(--accent2), #1a4d7c); }
+    .res-avatar.female { background: linear-gradient(135deg, #c06090, #8a2060); }
+    .res-avatar.na     { background: linear-gradient(135deg, #999, #666); }
+    .res-name { font-family: 'Calibri', Calibri, sans-serif; font-size: 1rem; color: var(--text); }
+    .res-meta { font-size: 0.76rem; color: var(--text-muted); margin-top: 2px; }
+    .res-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .res-status-badge {
+      font-size: 0.75rem; font-weight: 600; padding: 4px 12px; border-radius: 20px;
+    }
+    .res-status-badge.normo { background: var(--green-bg); color: var(--green); }
+    .res-status-badge.sobre { background: var(--red-bg); color: var(--red); }
+    .res-status-badge.na    { background: #f0f0f0; color: #888; }
+    .res-status-badge.sem   { background: #fff4e0; color: #a0620a; }
+    .res-chevron {
+      width: 22px; height: 22px; color: var(--text-muted); transition: transform 0.2s; flex-shrink: 0;
+    }
+    .res-chevron.open { transform: rotate(180deg); }
+    .res-body { display: none; padding: 0 22px 20px; }
+    .res-body.open { display: block; animation: fadeUp 0.2s ease; }
+    .res-no-data { padding: 16px 0; color: var(--text-muted); font-size: 0.85rem; font-style: italic; }
+    .res-table {
+      width: 100%; border-collapse: collapse; font-size: 0.83rem; margin-top: 10px;
+    }
+    .res-table th {
+      background: var(--bg); padding: 8px 12px; text-align: left; font-size: 0.71rem;
+      font-weight: 600; color: var(--text-muted); letter-spacing: 0.05em; text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+    }
+    .res-table td { padding: 9px 12px; border-bottom: 1px solid #eef1f5; vertical-align: middle; }
+    .res-table tr:last-child td { border-bottom: none; }
+    .res-table tr:hover td { background: #f7f9fc; }
+    .res-table .val-green { color: var(--green); font-weight: 600; }
+    .res-table .val-red   { color: var(--red);   font-weight: 600; }
+    .res-table .latest-row td { background: #f0f7ff; }
+    .res-table .latest-row td:first-child { border-left: 3px solid var(--accent2); }
+    .res-count-badge { background: var(--accent-light); color: var(--accent); border: 1px solid #b3d6f5; border-radius: 20px; padding: 4px 12px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
+    .res-pace-badge { background: #f0f0f0; color: #777; border: 1px solid #ddd; border-radius: 20px; padding: 4px 12px; font-size: 0.75rem; font-weight: 600; }
+    .res-empty-section { text-align:center; padding: 50px 20px; color: var(--text-muted); }
+    .res-empty-section svg { width:48px; height:48px; opacity:0.25; margin-bottom:14px; }
+
+    /* ── Flat results table ── */
+    .flat-table-wrap { overflow-x: auto; border-radius: var(--radius); box-shadow: var(--shadow); }
+    .flat-table {
+      width: 100%; border-collapse: collapse; font-size: 0.83rem;
+      background: var(--surface); border-radius: var(--radius); overflow: hidden;
+    }
+    .flat-table thead th {
+      background: linear-gradient(135deg, var(--accent) 0%, #1e5a9a 100%);
+      color: #fff; padding: 12px 14px; text-align: left;
+      font-size: 0.74rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .flat-table tbody tr { border-bottom: 1px solid #eef1f5; transition: background 0.12s; }
+    .flat-table tbody tr:hover td { background: #f4f8ff; }
+    .flat-table tbody tr:last-child { border-bottom: none; }
+    .flat-table td { padding: 9px 14px; vertical-align: middle; }
+    .flat-patient-first .flat-name-cell,
+    .flat-patient-first .flat-info-cell { border-top: 2px solid var(--border); }
+    .flat-name-cell {
+      min-width: 220px; max-width: 280px; vertical-align: middle !important;
+      border-right: 1px solid var(--border);
+    }
+    .flat-info-cell {
+      min-width: 130px; vertical-align: middle !important;
+      border-right: 1px solid var(--border); white-space: nowrap;
+    }
+    .flat-name { font-family: 'Calibri', Calibri, sans-serif; font-size: 0.95rem; color: var(--text); }
+    .flat-meta { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; line-height: 1.4; }
+    .flat-table .val-green { color: var(--green); font-weight: 600; }
+    .flat-table .val-red   { color: var(--red);   font-weight: 600; }
+
+    /* ── Reports section ── */
+    .reports-header-bar {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;
+      margin-bottom: 22px;
+    }
+    .reports-header-bar h2 { font-family: 'Calibri', Calibri, sans-serif; font-size: 1.3rem; color: var(--text); font-weight: 400; }
+    .reports-controls {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 18px 22px; margin-bottom: 20px; box-shadow: var(--shadow);
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    }
+    .reports-controls .month-filter-label { white-space: nowrap; }
+    .btn-download {
+      font-family: 'Calibri', sans-serif; font-size: 0.88rem; font-weight: 600;
+      padding: 10px 22px; border-radius: 8px; border: none; cursor: pointer;
+      background: var(--green); color: #fff; display: flex; align-items: center; gap: 8px;
+      transition: all 0.2s; box-shadow: 0 3px 10px rgba(42,122,90,0.25); white-space: nowrap;
+    }
+    .btn-download:hover { background: #22694c; box-shadow: 0 4px 16px rgba(42,122,90,0.35); transform: translateY(-1px); }
+    .btn-download svg { width: 15px; height: 15px; stroke: #fff; fill: none; stroke-width: 2.2; flex-shrink: 0; }
+    .report-preview-label {
+      font-size: 0.78rem; font-weight: 600; color: var(--text-muted);
+      letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .report-preview-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .report-summary-bar {
+      display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 16px;
+    }
+    .report-summary-item {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 18px; display: flex; align-items: center; gap: 10px; flex: 1; min-width: 130px;
+    }
+    .report-summary-item .rs-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .report-summary-item .rs-icon svg { width: 16px; height: 16px; stroke: #fff; fill: none; stroke-width: 2; }
+    .report-summary-item .rs-num { font-family: 'Calibri', Calibri, sans-serif; font-size: 1.4rem; color: var(--text); line-height: 1; }
+    .report-summary-item .rs-lbl { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+
+    /* ── Edit evaluation modal ── */
+    .edit-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(10,20,40,0.55); z-index: 300; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(3px); }
+    .edit-modal-overlay.open { display: flex; animation: fadeIn 0.2s ease; }
+    .edit-modal { background: var(--surface); border-radius: var(--radius); width: 100%; max-width: 520px; box-shadow: 0 20px 60px rgba(10,20,40,0.3); animation: slideUp 0.28s cubic-bezier(.34,1.46,.64,1); }
+    .edit-modal-header { background: linear-gradient(135deg, #1a7a5a 0%, #2aaa7a 100%); padding: 18px 22px; display: flex; align-items: center; justify-content: space-between; border-radius: var(--radius) var(--radius) 0 0; }
+    .edit-modal-header-left { display: flex; align-items: center; gap: 12px; }
+    .edit-modal-header-icon { width: 36px; height: 36px; background: rgba(255,255,255,0.15); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+    .edit-modal-header-icon svg { width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 2; }
+    .edit-modal-title { font-family: 'Calibri', Calibri, sans-serif; font-size: 1rem; color: #fff; font-weight: 400; }
+    .edit-modal-sub { font-size: 0.74rem; color: rgba(255,255,255,0.65); margin-top: 2px; }
+    .edit-modal-body { padding: 22px; }
+    .btn-edit-row { width: 28px; height: 28px; background: rgba(42,170,122,0.12); border: 1px solid rgba(42,170,122,0.3); color: #1a7a5a; border-radius: 6px; cursor: pointer; font-size: 0.82rem; display: inline-flex; align-items: center; justify-content: center; transition: all 0.18s; }
+    .btn-edit-row:hover { background: #edf7f3; border-color: var(--green); }
+    .btn-edit-row svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2.2; }
+
+    /* ── Priorities section ── */
+    .priorities-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .priority-col {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .priority-col-header {
+      padding: 12px 16px;
+      font-family: 'Calibri', Calibri, sans-serif;
+      font-size: 0.95rem;
+      font-weight: 400;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .priority-col-header.manha  { background: linear-gradient(135deg, #1a6aaa, #2d7dd2); }
+    .priority-col-header.tarde  { background: linear-gradient(135deg, #b86a00, #d4890a); }
+    .priority-col-header.noite  { background: linear-gradient(135deg, #3a2a6a, #5a4a9a); }
+    .priority-col-header .pch-sub { font-size: 0.68rem; opacity: 0.75; font-family: 'Calibri', sans-serif; margin-top: 2px; }
+    .priority-row-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 8px 14px 4px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+    }
+    .priority-list { padding: 8px; }
+    .priority-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      margin-bottom: 6px;
+      cursor: pointer;
+      transition: box-shadow 0.18s, transform 0.18s, border-color 0.18s;
+      position: relative;
+    }
+    .priority-card:last-child { margin-bottom: 0; }
+    .priority-card:hover { box-shadow: 0 3px 14px rgba(26,77,124,0.13); transform: translateY(-1px); border-color: var(--accent2); }
+    .priority-rank {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--accent-light); color: var(--accent);
+      font-size: 0.72rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .priority-rank.rank-1 { background: #fff4d0; color: #a06000; }
+    .priority-rank.rank-2 { background: #f0f0f0; color: #666; }
+    .priority-rank.rank-3 { background: #fdeede; color: #a04020; }
+    .priority-info { flex: 1; min-width: 0; }
+    .priority-name { font-size: 0.84rem; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .priority-days { font-size: 0.7rem; color: var(--text-muted); margin-top: 1px; }
+    .priority-days.urgent { color: var(--red); font-weight: 600; }
+    .priority-days.warning { color: var(--orange); font-weight: 600; }
+    .priority-badge {
+      font-size: 0.65rem; font-weight: 700; padding: 2px 7px;
+      border-radius: 20px; flex-shrink: 0; white-space: nowrap;
+    }
+    .priority-badge.late-high { background: var(--red-bg); color: var(--red); }
+    .priority-badge.late-med  { background: #fff4e0; color: #a0620a; }
+    .priority-badge.late-low  { background: var(--green-bg); color: var(--green); }
+    .priority-empty { padding: 16px 10px; text-align: center; color: var(--text-muted); font-size: 0.8rem; font-style: italic; }
+    @media (max-width: 700px) {
+      .priorities-grid { grid-template-columns: 1fr; }
+    }
+    @media (min-width: 701px) and (max-width: 900px) {
+      .priorities-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* ── Edit Patient Modal ── */
+    .edit-patient-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(10,20,40,0.55); z-index: 300; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(3px); }
+    .edit-patient-modal-overlay.open { display: flex; animation: fadeIn 0.2s ease; }
+    .edit-patient-modal { background: var(--surface); border-radius: var(--radius); width: 100%; max-width: 460px; box-shadow: 0 20px 60px rgba(10,20,40,0.3); animation: slideUp 0.28s cubic-bezier(.34,1.46,.64,1); }
+    .edit-patient-header { background: linear-gradient(135deg, #1a4d7c 0%, #2d7dd2 100%); padding: 18px 22px; display: flex; align-items: center; justify-content: space-between; border-radius: var(--radius) var(--radius) 0 0; }
+    .edit-patient-header-left { display: flex; align-items: center; gap: 12px; }
+    .edit-patient-header-icon { width: 36px; height: 36px; background: rgba(255,255,255,0.15); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+    .edit-patient-header-icon svg { width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 2; }
+    .edit-patient-title { font-family: 'Calibri', Calibri, sans-serif; font-size: 1rem; color: #fff; font-weight: 400; }
+    .edit-patient-sub { font-size: 0.74rem; color: rgba(255,255,255,0.65); margin-top: 2px; }
+    .edit-patient-body { padding: 22px; }
+
+    /* ── Special eval type badges in history ── */
+    .eval-type-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 0.68rem; font-weight: 600; padding: 2px 8px;
+      border-radius: 12px; white-space: nowrap;
+    }
+    .eval-type-invalid { background: #fff4e0; color: #a0620a; border: 1px solid #f5d89a; }
+    .eval-type-internado { background: #e8f0ff; color: #2952a3; border: 1px solid #b3c8f5; }
+
+    /* DB status indicator in header */
+    .db-status { display: flex; align-items: center; gap: 7px; font-size: 0.75rem; }
+    .db-dot { width: 8px; height: 8px; border-radius: 50%; background: #aaa; flex-shrink: 0; transition: background 0.3s; }
+    .db-dot.connected { background: #4ade80; }
+    .db-dot.error { background: var(--red); }
+    /* Loading overlay */
+    #app-loading { position: fixed; inset: 0; background: var(--bg); z-index: 500; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+    #app-loading .spin { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent2); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #app-loading p { font-size: 0.9rem; color: var(--text-muted); }
+  </style>
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div id="app-loading" style="display:none">
+  <div class="spin"></div>
+  <p>A sincronizar dados...</p>
+</div>
+
+<header>
+  <div class="header-brand">
+    <div class="header-logo">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+    </div>
+    <div>
+      <div class="header-title">Avaliação BCM</div>
+      <div class="header-subtitle">Sistema de Gestão de Doentes</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:14px;">
+    <div class="db-status"><div class="db-dot" id="db-dot"></div><span id="db-status-txt" style="color:rgba(255,255,255,0.7)">Offline</span></div>
+    <div class="header-badge">Nephrocare Funchal</div>
+  </div>
+</header>
+
+<nav>
+  <button class="tab-btn active" onclick="showTab('intro', this)">Início</button>
+  <button class="tab-btn" onclick="showTab('form', this)">Registar Doente</button>
+  <button class="tab-btn" onclick="showTab('list', this)">Listagem</button>
+  <button class="tab-btn" onclick="showTab('results', this)">Resultados Individuais</button>
+  <button class="tab-btn" onclick="showTab('priorities', this)">Prioridades de Avaliação</button>
+  <button class="tab-btn" onclick="showTab('reports', this)">Relatórios</button>
+</nav>
+
+<main>
+
+  <!-- ══ INÍCIO ══ -->
+  <div id="intro" class="section active">
+    <div class="intro-hero">
+      <h1>Bem-vindo ao Avaliação BCM</h1>
+      <p>Plataforma de gestão e registo de doentes para avaliação de Body Composition Monitor. Registe dados clínicos, consulte os turnos e gerencie as avaliações de forma simples e eficiente.</p>
+    </div>
+
+    <!-- Month filter -->
+    <div class="month-filter-bar">
+      <span class="month-filter-label">📅 Filtrar por mês:</span>
+      <div class="month-pills" id="month-pills"></div>
+      <span class="month-context" id="month-context"></span>
+    </div>
+
+    <!-- Stat cards -->
+    <div class="stat-cards">
+      <div class="stat-card">
+        <div class="stat-icon blue"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+        <div><div class="stat-num" id="stat-total">0</div><div class="stat-lbl">Doentes Total</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <div><div class="stat-num" id="stat-normo">0</div><div class="stat-lbl">Normohidratados</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon red"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+        <div><div class="stat-num" id="stat-sobre">0</div><div class="stat-lbl">Sobrehidratados</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon orange"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+        <div><div class="stat-num" id="stat-na">0</div><div class="stat-lbl">Não Avaliáveis</div></div>
+      </div>
+    </div>
+
+    <!-- Charts row 1 -->
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">Estado de Hidratação</div>
+        <div class="chart-subtitle">Normohidratados vs Sobrehidratados (doentes avaliáveis)</div>
+        <div class="chart-wrap" style="height:220px"><canvas id="chartDonut"></canvas></div>
+        <div class="legend" id="legendDonut"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Doentes Avaliados por Turno</div>
+        <div class="chart-subtitle">Número de doentes com avaliação BCM registada</div>
+        <div class="chart-wrap" style="height:220px"><canvas id="chartTurno"></canvas></div>
+      </div>
+      <div class="chart-card wide">
+        <div class="chart-title">Hidratação por Turno</div>
+        <div class="chart-subtitle">Normohidratados e Sobrehidratados distribuídos por turno</div>
+        <div class="chart-wrap" style="height:240px"><canvas id="chartTurnoStack"></canvas></div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#2a7a5a"></div>Normohidratados</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#b83232"></div>Sobrehidratados</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#ddd"></div>Não avaliados / Sem dados</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ REGISTAR DOENTE ══ -->
+  <div id="form" class="section">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-header-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+        <div><h2>Dados do Doente</h2><p>Preencha todos os campos obrigatórios</p></div>
+      </div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>Nome completo <span class="req">*</span></label>
+            <input type="text" id="f-nome" placeholder="Introduza o nome do doente" />
+          </div>
+          <div class="form-group">
+            <label>Género <span class="req">*</span></label>
+            <div class="radio-group">
+              <label class="radio-option"><input type="radio" name="genero" value="Masculino" /><span class="dot"></span>Masculino</label>
+              <label class="radio-option"><input type="radio" name="genero" value="Feminino" /><span class="dot"></span>Feminino</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Pacemaker / CDI <span class="req">*</span></label>
+            <div class="toggle-group">
+              <label class="toggle-option yes"><input type="radio" name="pacemaker" value="Sim" />✓ Sim</label>
+              <label class="toggle-option no"><input type="radio" name="pacemaker" value="Não" />✗ Não</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Turno <span class="req">*</span></label>
+            <div class="select-wrapper">
+              <select id="f-turno">
+                <option value="">— Selecionar turno —</option>
+                <option>Par Manhã</option><option>Par Tarde</option><option>Par Noite</option>
+                <option>Ímpar Manhã</option><option>Ímpar Tarde</option><option>Ímpar Noite</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Médico Responsável <span class="req">*</span></label>
+            <div class="select-wrapper">
+              <select id="f-medico">
+                <option value="">— Selecionar médico —</option>
+                <option>Dr. Gil</option><option>Dr. Alves</option><option>Dr. Durães</option>
+                <option>Dr. Miguel</option><option>Dra. Carlota</option><option>Dra. Nicole</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <hr class="divider" />
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="resetForm()">Limpar</button>
+          <button class="btn btn-primary" onclick="savePatient()">Guardar Registo</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ LISTAGEM ══ -->
+  <div id="list" class="section">
+    <div class="list-controls">
+      <input type="text" class="search-box" id="search-box" placeholder="🔍  Pesquisar por nome, médico ou turno..." oninput="renderList()" />
+      <div class="count-badge" id="count-badge">0 doentes</div>
+    </div>
+    <div class="patient-grid" id="patient-grid">
+      <div class="empty-state" style="grid-column:1/-1">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        <p>Ainda não existem doentes registados.</p>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══ RESULTADOS INDIVIDUAIS ══ -->
+  <div id="results" class="section">
+    <div class="results-controls">
+      <input type="text" class="search-box" id="res-search" placeholder="🔍  Pesquisar por nome, médico ou turno..." oninput="renderResults()" />
+      <div class="count-badge" id="res-count-badge">0 doentes</div>
+    </div>
+    <div class="res-month-bar">
+      <span class="month-filter-label">📅 Filtrar por mês:</span>
+      <div class="month-pills" id="res-month-pills"></div>
+      <span class="month-context" id="res-month-context"></span>
+    </div>
+    <div id="results-list"></div>
+  </div>
+
+  <!-- ══ PRIORIDADES DE AVALIAÇÃO ══ -->
+  <div id="priorities" class="section">
+    <div style="margin-bottom:20px;">
+      <h2 style="font-family:'Calibri',Calibri,sans-serif;font-size:1.3rem;color:var(--text);font-weight:400;margin-bottom:4px;">Prioridades de Avaliação</h2>
+      <p style="font-size:0.82rem;color:var(--text-muted);">Os 5 doentes com avaliação mais atrasada por turno — ordenados por dias desde a última avaliação.</p>
+    </div>
+    <!-- Par -->
+    <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;padding-left:2px;">⬡ Dias Pares</div>
+    <div class="priorities-grid" id="priority-par"></div>
+    <!-- Ímpar -->
+    <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;padding-left:2px;">⬡ Dias Ímpares</div>
+    <div class="priorities-grid" id="priority-impar"></div>
+  </div>
+
+  <!-- ══ RELATÓRIOS ══ -->
+  <div id="reports" class="section">
+    <div class="reports-header-bar">
+      <div>
+        <h2>Relatórios de Avaliações BCM</h2>
+        <p style="font-size:0.82rem;color:var(--text-muted);margin-top:4px;">Exportar dados completos de todos os doentes em formato de tabela</p>
+      </div>
+    </div>
+
+    <div class="reports-controls">
+      <span class="month-filter-label">📅 Período:</span>
+      <div class="month-pills" id="rep-month-pills"></div>
+      <span class="month-context" id="rep-month-context"></span>
+      <button class="btn-download" onclick="downloadReport()">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Descarregar Relatório Excel
+      </button>
+    </div>
+
+    <div class="report-summary-bar" id="rep-summary-bar"></div>
+
+    <div class="report-preview-label">Pré-visualização do relatório</div>
+    <div class="flat-table-wrap" id="rep-preview-wrap">
+      <div class="empty-state" style="padding:40px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <p>A carregar dados...</p>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ══ BCM MODAL ══ -->
+
+<!-- ══ EDIT PATIENT MODAL ══ -->
+<div class="edit-patient-modal-overlay" id="edit-patient-modal">
+  <div class="edit-patient-modal">
+    <div class="edit-patient-header">
+      <div class="edit-patient-header-left">
+        <div class="edit-patient-header-icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        </div>
+        <div>
+          <div class="edit-patient-title">Editar Dados do Doente</div>
+          <div class="edit-patient-sub" id="edit-patient-sub">—</div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeEditPatientModal()">✕</button>
+    </div>
+    <div class="edit-patient-body">
+      <input type="hidden" id="edit-patient-id" />
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Nome completo <span class="req">*</span></label>
+          <input type="text" id="ep-nome" placeholder="Nome do doente" />
+        </div>
+        <div class="form-group">
+          <label>Turno <span class="req">*</span></label>
+          <div class="select-wrapper">
+            <select id="ep-turno">
+              <option value="">— Selecionar turno —</option>
+              <option>Par Manhã</option><option>Par Tarde</option><option>Par Noite</option>
+              <option>Ímpar Manhã</option><option>Ímpar Tarde</option><option>Ímpar Noite</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Médico Responsável <span class="req">*</span></label>
+          <div class="select-wrapper">
+            <select id="ep-medico">
+              <option value="">— Selecionar médico —</option>
+              <option>Dr. Gil</option><option>Dr. Alves</option><option>Dr. Durães</option>
+              <option>Dr. Miguel</option><option>Dra. Carlota</option><option>Dra. Nicole</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="btn-row" style="margin-top:20px;">
+        <button class="btn btn-secondary" onclick="closeEditPatientModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveEditedPatient()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline;vertical-align:middle;margin-right:5px;"><polyline points="20 6 9 17 4 12"/></svg>
+          Guardar Alterações
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ EDIT EVALUATION MODAL ══ -->
+<div class="edit-modal-overlay" id="edit-eval-modal">
+  <div class="edit-modal">
+    <div class="edit-modal-header">
+      <div class="edit-modal-header-left">
+        <div class="edit-modal-header-icon">
+          <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </div>
+        <div>
+          <div class="edit-modal-title">Editar Avaliação BCM</div>
+          <div class="edit-modal-sub" id="edit-modal-date-label">—</div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+    <div class="edit-modal-body">
+      <input type="hidden" id="edit-eval-id" />
+      <div class="modal-form-grid">
+        <div class="form-group full">
+          <label>Data da Avaliação <span class="req">*</span></label>
+          <input type="date" id="edit-bcm-data" />
+        </div>
+        <div class="form-group">
+          <label>Sobrehidratação (OH) <span class="req">*</span></label>
+          <div class="input-unit"><input type="number" id="edit-bcm-oh" placeholder="0.0" step="0.1" /><span class="unit">L</span></div>
+        </div>
+        <div class="form-group">
+          <label>Vol. Distribuição Ureia</label>
+          <div class="input-unit"><input type="number" id="edit-bcm-vdu" placeholder="0.0" step="0.1" /><span class="unit">L</span></div>
+        </div>
+        <div class="form-group">
+          <label>Peso Seco</label>
+          <div class="input-unit"><input type="number" id="edit-bcm-pseco" placeholder="0.0" step="0.1" /><span class="unit">kg</span></div>
+        </div>
+        <div class="form-group">
+          <label>Peso Normohidratado</label>
+          <div class="input-unit"><input type="number" id="edit-bcm-pnormo" placeholder="0.0" step="0.1" /><span class="unit">kg</span></div>
+        </div>
+      </div>
+      <div class="btn-row" style="margin-top:20px;">
+        <button class="btn btn-secondary" onclick="closeEditModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveEditedBcm()" style="background:var(--green);box-shadow:0 3px 10px rgba(42,122,90,0.3);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline;vertical-align:middle;margin-right:5px;"><polyline points="20 6 9 17 4 12"/></svg>
+          Guardar Alterações
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ BCM MODAL ══ -->
+<div class="modal-overlay" id="bcm-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <div class="modal-header-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+        <div>
+          <div class="modal-title">Avaliação BCM</div>
+          <div class="modal-patient" id="modal-patient-name">—</div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body-content"></div>
+  </div>
+</div>
+
+<div id="toast">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+  <span id="toast-msg">Guardado!</span>
+</div>
+
+<script>
+  // ══════════════════════════════════════════════════════
+  //  FIREBASE LAYER
+  // ══════════════════════════════════════════════════════
+  let db = null;
+  let patients = [];
+  let currentPatientId = null;
+  let chartDonut = null, chartTurno = null, chartTurnoStack = null;
+  let selectedMonth = 'all';
+
+  const TURNOS = ['Par Manhã','Par Tarde','Par Noite','Ímpar Manhã','Ímpar Tarde','Ímpar Noite'];
+  const MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+  // Load saved config and auto-connect
+  // ── Hardcoded Firebase config ──
+  const FIREBASE_CONFIG = {
+    apiKey:            "AIzaSyB8IpkUTFZ7WBPt_kTk-2Dv5zDgtHnXWyk",
+    authDomain:        "bcm2-ae846.firebaseapp.com",
+    databaseURL:       "https://bcm2-ae846-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId:         "bcm2-ae846",
+    storageBucket:     "bcm2-ae846.firebasestorage.app",
+    messagingSenderId: "31128478536",
+    appId:             "1:31128478536:web:4cf467a52ec9ed08a1497d"
+  };
+
+  window.addEventListener('load', () => {
+    // Auto-connect immediately
+    initFirebase(FIREBASE_CONFIG);
+  });
+
+  function initFirebase(cfg) {
+    document.getElementById('app-loading').style.display = 'flex';
+    try {
+      if (firebase.apps.length === 0) {
+        firebase.initializeApp(cfg);
+      }
+      db = firebase.database();
+      setDbStatus('connected', 'Ligado');
+      startListeners();
+    } catch(e) {
+      document.getElementById('app-loading').style.display = 'none';
+      setDbStatus('error', 'Erro de ligação');
+      console.error('Firebase init error:', e);
+      alert('Erro ao ligar ao Firebase: ' + e.message);
+    }
+  }
+
+  function setDbStatus(state, label) {
+    const dot = document.getElementById('db-dot');
+    const txt = document.getElementById('db-status-txt');
+    dot.className = 'db-dot ' + state;
+    txt.textContent = label;
+  }
+
+  // ── Real-time listener: builds patients array from Firebase ──
+  function startListeners() {
+    const pRef = db.ref('patients');
+    const eRef = db.ref('evaluations');
+
+    // Listen to both and rebuild when either changes
+    let pSnap = null, eSnap = null;
+
+    pRef.on('value', snap => {
+      pSnap = snap;
+      if (pSnap && eSnap) rebuildAndRender(pSnap, eSnap);
+    }, err => { setDbStatus('error', 'Erro'); console.error(err); });
+
+    eRef.on('value', snap => {
+      eSnap = snap;
+      if (pSnap && eSnap) rebuildAndRender(pSnap, eSnap);
+    }, err => { setDbStatus('error', 'Erro'); console.error(err); });
+  }
+
+  function rebuildAndRender(pSnap, eSnap) {
+    // Group evaluations by patientId
+    const evalsByPatient = {};
+    eSnap.forEach(child => {
+      const ev = child.val();
+      const pid = ev.patientId;
+      if (!evalsByPatient[pid]) evalsByPatient[pid] = [];
+      evalsByPatient[pid].push({
+        id: child.key,
+        data: ev.data || null,
+        oh: ev.oh !== undefined ? ev.oh : null,
+        vdu: ev.vdu !== undefined ? ev.vdu : null,
+        pseco: ev.psp !== undefined ? ev.psp : null,
+        pnormo: ev.pnh !== undefined ? ev.pnh : null,
+        evalType: ev.evalType || null,
+      });
+    });
+
+    // Build patients array
+    patients = [];
+    pSnap.forEach(child => {
+      const p = child.val();
+      const evs = (evalsByPatient[child.key] || [])
+        .sort((a, b) => (b.data || '').localeCompare(a.data || ''));
+      patients.push({
+        id: child.key,       // Firebase key as id
+        fbKey: child.key,
+        nome: p.nome || '',
+        genero: p.genero || '',
+        turno: p.turno || '',
+        pacemaker: p.pacemaker || 'Não',
+        medico: p.medico || '',
+        bcm: evs,
+      });
+    });
+
+    document.getElementById('app-loading').style.display = 'none';
+    setDbStatus('connected', 'Ligado');
+
+    // Re-render whatever is visible
+    const activeSection = document.querySelector('.section.active');
+    if (activeSection) {
+      const id = activeSection.id;
+      if (id === 'intro') { buildMonthPills(); updateStats(); renderCharts(); }
+      if (id === 'list')  renderList();
+      if (id === 'results') { buildResMonthPills(); renderResults(); }
+      if (id === 'priorities') renderPriorities();
+      if (id === 'reports') { buildRepMonthPills(); renderReportPreview(); }
+    } else {
+      buildMonthPills(); updateStats(); renderCharts();
+    }
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  PERSIST  (write to Firebase)
+  // ══════════════════════════════════════════════════════
+  async function persist() { /* data written via specific FB calls */ }
+
+  function ohThreshold(genero) { return genero === 'Feminino' ? 13 : 15; }
+
+  function hydrationStatusForMonth(p, monthKey) {
+    if (p.pacemaker === 'Sim') return 'na';
+    if (!p.bcm || !p.bcm.length) return null;
+    const records = monthKey === 'all'
+      ? p.bcm
+      : p.bcm.filter(b => b.data && b.data.startsWith(monthKey));
+    if (!records.length) return null;
+    const latest = records[0];
+    if (latest.oh === null || latest.oh === undefined) return null;
+    return latest.oh <= ohThreshold(p.genero) ? 'normo' : 'sobre';
+  }
+
+  function hydrationStatus(p) { return hydrationStatusForMonth(p, selectedMonth); }
+
+  // ── Build month pills ──
+  function buildMonthPills() {
+    const monthSet = new Set();
+    patients.forEach(p => (p.bcm || []).forEach(b => {
+      if (b.data) monthSet.add(b.data.slice(0, 7));
+    }));
+    const months = Array.from(monthSet).sort().reverse();
+    const container = document.getElementById('month-pills');
+    if (!container) return;
+    let html = `<button class="month-pill all ${selectedMonth === 'all' ? 'active' : ''}" onclick="selectMonth('all')">Todos</button>`;
+    months.forEach(m => {
+      const [y, mon] = m.split('-');
+      const label = `${MESES_PT[parseInt(mon,10)-1]} ${y}`;
+      html += `<button class="month-pill ${selectedMonth === m ? 'active' : ''}" onclick="selectMonth('${m}')">${label}</button>`;
+    });
+    container.innerHTML = html;
+    updateMonthContext();
+  }
+
+  function updateMonthContext() {
+    const el = document.getElementById('month-context');
+    if (!el) return;
+    if (selectedMonth === 'all') {
+      el.innerHTML = 'A mostrar <strong>todos os registos</strong>';
+    } else {
+      const [y, mon] = selectedMonth.split('-');
+      el.innerHTML = `A mostrar <strong>${MESES_PT[parseInt(mon,10)-1]} ${y}</strong>`;
+    }
+  }
+
+  function selectMonth(key) {
+    selectedMonth = key;
+    buildMonthPills();
+    updateStats();
+    renderCharts();
+  }
+
+  // ── Tabs ──
+  function showTab(id, btn) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    btn.classList.add('active');
+    if (id === 'list') renderList();
+    if (id === 'intro') { buildMonthPills(); updateStats(); renderCharts(); }
+    if (id === 'results') { buildResMonthPills(); renderResults(); }
+    if (id === 'priorities') renderPriorities();
+    if (id === 'reports') { buildRepMonthPills(); renderReportPreview(); }
+  }
+
+  // ── Patient CRUD ──
+  async function savePatient() {
+    const d = {
+      nome: document.getElementById('f-nome').value.trim(),
+      genero: document.querySelector('input[name="genero"]:checked')?.value || '',
+      turno: document.getElementById('f-turno').value,
+      pacemaker: document.querySelector('input[name="pacemaker"]:checked')?.value || '',
+      medico: document.getElementById('f-medico').value,
+      criadoEm: new Date().toISOString(),
+    };
+    if (!d.nome || !d.genero || !d.turno || !d.pacemaker || !d.medico) {
+      alert('Por favor, preencha todos os campos obrigatórios.'); return;
+    }
+    if (!db) { alert('Sem ligação ao Firebase.'); return; }
+    try {
+      await db.ref('patients').push(d);
+      showToast('Doente registado com sucesso!');
+      resetForm();
+    } catch(e) { showToast('Erro ao guardar: ' + e.message); }
+  }
+
+  function resetForm() {
+    document.getElementById('f-nome').value = '';
+    document.querySelectorAll('#form input[type=radio]').forEach(r => r.checked = false);
+    document.getElementById('f-turno').value = '';
+    document.getElementById('f-medico').value = '';
+  }
+
+  async function deletePatient(id) {
+    if (!confirm('Remover este doente e todas as suas avaliações BCM?')) return;
+    if (!db) return;
+    try {
+      // Delete all evaluations for this patient
+      const eSnap = await db.ref('evaluations').orderByChild('patientId').equalTo(id).once('value');
+      const updates = {};
+      eSnap.forEach(child => { updates['evaluations/' + child.key] = null; });
+      updates['patients/' + id] = null;
+      await db.ref().update(updates);
+      showToast('Doente removido.');
+    } catch(e) { showToast('Erro ao remover: ' + e.message); }
+  }
+
+  // ── List render — alphabetical ──
+  function renderList() {
+    const q = document.getElementById('search-box').value.toLowerCase();
+    const filtered = patients
+      .filter(p =>
+        p.nome.toLowerCase().includes(q) ||
+        p.medico.toLowerCase().includes(q) ||
+        p.turno.toLowerCase().includes(q)
+      )
+      .sort((a, b) => a.nome.localeCompare(b.nome, 'pt', { sensitivity: 'base' }));
+
+    const grid = document.getElementById('patient-grid');
+    document.getElementById('count-badge').textContent = filtered.length + ' doente' + (filtered.length !== 1 ? 's' : '');
+
+    if (!filtered.length) {
+      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        <p>${patients.length ? 'Nenhum resultado encontrado.' : 'Ainda não existem doentes registados.'}</p>
+      </div>`; return;
+    }
+
+    grid.innerHTML = filtered.map(p => {
+      const bcmCount = (p.bcm || []).length;
+      const isPace = p.pacemaker === 'Sim';
+      const statusAll = hydrationStatusForMonth(p, 'all');
+      let statusTag = '';
+      if (isPace) statusTag = `<span class="tag tag-na">Não Avaliável</span>`;
+      else if (statusAll === 'normo') statusTag = `<span class="tag tag-normo">✓ Normohidratado</span>`;
+      else if (statusAll === 'sobre') statusTag = `<span class="tag tag-sobre">⚠ Sobrehidratado</span>`;
+      return `
+      <div class="patient-card ${isPace ? 'pacemaker-card' : ''}">
+        <div class="pc-name">${escHtml(p.nome)}</div>
+        <div class="pc-tags">
+          <span class="tag tag-gender">${p.genero}</span>
+          <span class="tag tag-turn">${p.turno}</span>
+          <span class="tag ${isPace ? 'tag-yes' : 'tag-no'}">PCM/CDI: ${p.pacemaker}</span>
+          ${bcmCount > 0 ? `<span class="tag tag-bcm">${bcmCount} aval.</span>` : ''}
+          ${statusTag}
+        </div>
+        <div class="pc-doctor">${escHtml(p.medico)}</div>
+        <div class="pc-actions">
+          <button class="btn-action btn-bcm" onclick="openModal('${p.id}')" ${isPace ? 'disabled title="Pacemaker/CDI — não avaliável"' : ''}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            ${isPace ? 'Não Avaliável' : 'Avaliação BCM'}
+          </button>
+          <button class="btn-action" style="background:#e8f0ff;color:#2952a3;flex:0;padding:7px 10px;" onclick="openEditPatientModal('${p.id}')" title="Editar dados do doente">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="btn-action btn-del-sm" onclick="deletePatient('${p.id}')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+            Remover
+          </button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── BCM Modal ──
+  function openModal(id) {
+    currentPatientId = id;
+    const p = patients.find(x => x.id === id);
+    if (!p) return;
+    document.getElementById('modal-patient-name').textContent = p.nome;
+    buildModalBody(p);
+    document.getElementById('bcm-modal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function buildModalBody(p) {
+    const isPace = p.pacemaker === 'Sim';
+    const container = document.getElementById('modal-body-content');
+    if (isPace) {
+      container.innerHTML = `
+        <div class="pace-notice">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <strong>Doente com Pacemaker / CDI</strong><br>
+          Este doente não é avaliável por BCM devido à presença de dispositivo cardíaco implantado.
+        </div>`; return;
+    }
+    const limit = ohThreshold(p.genero);
+    container.innerHTML = `
+      <div class="form-group full" style="margin-bottom:16px;">
+        <label>Tipo de Registo <span class="req">*</span></label>
+        <div class="toggle-group" style="gap:8px;">
+          <label class="toggle-option yes" id="topt-normal" style="flex:2;font-size:0.82rem;" onclick="setEvalType('normal')">
+            <input type="radio" name="eval-type" value="normal" checked />
+            📊 Avaliação Normal
+          </label>
+          <label class="toggle-option" id="topt-invalida" style="flex:2;font-size:0.78rem;background:#fff8ee;border-color:#f5d89a;color:#a0620a;" onclick="setEvalType('invalida')">
+            <input type="radio" name="eval-type" value="invalida" />
+            ⚠ Inválida / Sem Dados
+          </label>
+          <label class="toggle-option" id="topt-internado" style="flex:2;font-size:0.78rem;background:#eef3ff;border-color:#b3c8f5;color:#2952a3;" onclick="setEvalType('internado')">
+            <input type="radio" name="eval-type" value="internado" />
+            🏥 Internado / Férias
+          </label>
+        </div>
+      </div>
+      <div class="modal-form-grid" id="eval-normal-fields">
+        <div class="form-group full">
+          <label>Data da Avaliação <span class="req">*</span></label>
+          <input type="date" id="bcm-data" value="${new Date().toISOString().split('T')[0]}" />
+        </div>
+        <div class="form-group">
+          <label>Sobrehidratação (OH) <span class="req">*</span></label>
+          <div class="input-unit"><input type="number" id="bcm-oh" placeholder="0.0" step="0.1" /><span class="unit">L</span></div>
+          <span style="font-size:0.72rem;color:var(--text-muted)">Limite: ≤ ${limit} L (${p.genero})</span>
+        </div>
+        <div class="form-group">
+          <label>Vol. Distribuição Ureia</label>
+          <div class="input-unit"><input type="number" id="bcm-vdu" placeholder="0.0" step="0.1" /><span class="unit">L</span></div>
+        </div>
+        <div class="form-group">
+          <label>Peso Seco</label>
+          <div class="input-unit"><input type="number" id="bcm-pseco" placeholder="0.0" step="0.1" /><span class="unit">kg</span></div>
+        </div>
+        <div class="form-group">
+          <label>Peso Normohidratado</label>
+          <div class="input-unit"><input type="number" id="bcm-pnormo" placeholder="0.0" step="0.1" /><span class="unit">kg</span></div>
+        </div>
+      </div>
+      <div id="eval-special-fields" style="display:none;">
+        <div class="form-group" style="margin-bottom:16px;">
+          <label>Data do Registo <span class="req">*</span></label>
+          <input type="date" id="bcm-data-special" value="${new Date().toISOString().split('T')[0]}" />
+        </div>
+        <div id="eval-special-note" style="background:#f7f9fc;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:0.82rem;color:var(--text-muted);"></div>
+      </div>
+      <div class="btn-row" style="margin-top:18px;">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveBcm()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline;vertical-align:middle;margin-right:5px;"><polyline points="20 6 9 17 4 12"/></svg>
+          Guardar Registo
+        </button>
+      </div>
+      <div class="bcm-history">
+        <div class="bcm-history-title">Histórico de Avaliações</div>
+        <div id="bcm-history-content"></div>
+      </div>`;
+    renderBcmHistory(p);
+  }
+
+  function setEvalType(type) {
+    const normalFields = document.getElementById('eval-normal-fields');
+    const specialFields = document.getElementById('eval-special-fields');
+    const note = document.getElementById('eval-special-note');
+    document.querySelectorAll('input[name="eval-type"]').forEach(r => r.checked = (r.value === type));
+    if (type === 'normal') {
+      normalFields.style.display = '';
+      specialFields.style.display = 'none';
+    } else {
+      normalFields.style.display = 'none';
+      specialFields.style.display = '';
+      if (type === 'invalida') {
+        note.innerHTML = '<strong>⚠ Avaliação inválida / sem dados</strong><br>Não foi possível obter dados válidos nesta sessão. Apenas a data será registada. O registo contará para o cálculo de atraso.';
+      } else {
+        note.innerHTML = '<strong>🏥 Doente internado / férias</strong><br>O doente não estava disponível para avaliação. Apenas a data será registada. O registo contará para o cálculo de atraso.';
+      }
+    }
+  }
+
+  function closeModal() {
+    document.getElementById('bcm-modal').classList.remove('open');
+    document.body.style.overflow = '';
+    currentPatientId = null;
+  }
+  document.getElementById('bcm-modal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+
+  async function saveBcm() {
+    const evalType = document.querySelector('input[name="eval-type"]:checked')?.value || 'normal';
+
+    if (evalType === 'normal') {
+      const data   = document.getElementById('bcm-data').value;
+      const oh     = document.getElementById('bcm-oh').value;
+      const vdu    = document.getElementById('bcm-vdu').value;
+      const pseco  = document.getElementById('bcm-pseco').value;
+      const pnormo = document.getElementById('bcm-pnormo').value;
+      if (!data || oh === '') { alert('A data e o valor de sobrehidratação (OH) são obrigatórios.'); return; }
+      if (!db) { alert('Sem ligação ao Firebase.'); return; }
+      const ev = {
+        patientId: currentPatientId,
+        data,
+        oh: parseFloat(oh),
+        vdu: vdu !== '' ? parseFloat(vdu) : null,
+        psp: pseco !== '' ? parseFloat(pseco) : null,
+        pnh: pnormo !== '' ? parseFloat(pnormo) : null,
+        criadoEm: new Date().toISOString(),
+      };
+      Object.keys(ev).forEach(k => ev[k] === null && delete ev[k]);
+      try {
+        await db.ref('evaluations').push(ev);
+        document.getElementById('bcm-oh').value = '';
+        document.getElementById('bcm-vdu').value = '';
+        document.getElementById('bcm-pseco').value = '';
+        document.getElementById('bcm-pnormo').value = '';
+        showToast('Avaliação BCM guardada!');
+      } catch(e) { showToast('Erro ao guardar avaliação: ' + e.message); }
+    } else {
+      // Special types: invalida or internado
+      const data = document.getElementById('bcm-data-special').value;
+      if (!data) { alert('A data é obrigatória.'); return; }
+      if (!db) { alert('Sem ligação ao Firebase.'); return; }
+      const ev = {
+        patientId: currentPatientId,
+        data,
+        evalType, // 'invalida' or 'internado'
+        criadoEm: new Date().toISOString(),
+      };
+      try {
+        await db.ref('evaluations').push(ev);
+        showToast(evalType === 'invalida' ? 'Registo inválido guardado!' : 'Registo de internamento guardado!');
+      } catch(e) { showToast('Erro ao guardar: ' + e.message); }
+    }
+  }
+
+  async function deleteBcm(evalId) {
+    if (!db) return;
+    try {
+      await db.ref('evaluations/' + evalId).remove();
+    } catch(e) { showToast('Erro ao remover avaliação.'); }
+  }
+
+  function renderBcmHistory(p) {
+    const container = document.getElementById('bcm-history-content');
+    if (!container) return;
+    const liveP = patients.find(x => x.id === p.id) || p;
+    const records = liveP.bcm || [];
+    const limit = ohThreshold(liveP.genero);
+    if (!records.length) { container.innerHTML = '<div class="no-bcm">Nenhuma avaliação registada para este doente.</div>'; return; }
+    const rows = records.map(b => {
+      if (b.evalType === 'invalida') {
+        return `<tr>
+          <td>${formatDate(b.data)}</td>
+          <td colspan="4"><span class="eval-type-badge eval-type-invalid">⚠ Avaliação inválida / sem dados</span></td>
+          <td style="white-space:nowrap"><button class="btn-del-row" onclick="deleteBcm('${b.id}')" title="Remover">✕</button></td>
+        </tr>`;
+      }
+      if (b.evalType === 'internado') {
+        return `<tr>
+          <td>${formatDate(b.data)}</td>
+          <td colspan="4"><span class="eval-type-badge eval-type-internado">🏥 Internado / Férias</span></td>
+          <td style="white-space:nowrap"><button class="btn-del-row" onclick="deleteBcm('${b.id}')" title="Remover">✕</button></td>
+        </tr>`;
+      }
+      const ohVal = b.oh !== null && b.oh !== undefined ? b.oh : null;
+      const ohClass = ohVal !== null ? (ohVal <= limit ? 'val-green' : 'val-red') : '';
+      const ohDisp = ohVal !== null ? `<span class="${ohClass}">${ohVal} L</span>` : '—';
+      return `<tr>
+        <td>${formatDate(b.data)}</td>
+        <td>${ohDisp}</td>
+        <td>${b.vdu !== null && b.vdu !== undefined ? b.vdu + ' L' : '—'}</td>
+        <td>${b.pseco !== null && b.pseco !== undefined ? b.pseco + ' kg' : '—'}</td>
+        <td>${b.pnormo !== null && b.pnormo !== undefined ? b.pnormo + ' kg' : '—'}</td>
+        <td style="white-space:nowrap">
+          <button class="btn-edit-row" onclick="openEditModal('${b.id}')" title="Editar avaliação">
+            <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="btn-del-row" onclick="deleteBcm('${b.id}')" title="Remover">✕</button>
+        </td>
+      </tr>`;
+    }).join('');
+    container.innerHTML = `
+      <table class="bcm-table">
+        <thead><tr><th>Data</th><th>OH (L)</th><th>VDU (L)</th><th>P. Seco (kg)</th><th>P. Normo (kg)</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  // ── Dashboard stats & charts (month-aware) ──
+  function getLatestBcmForMonth(p, monthKey) {
+    if (!p.bcm || !p.bcm.length) return null;
+    const recs = monthKey === 'all' ? p.bcm : p.bcm.filter(b => b.data && b.data.startsWith(monthKey));
+    return recs.length ? recs[0] : null;
+  }
+
+  function computeStats() {
+    const total  = patients.length;
+    const naCount = patients.filter(p => p.pacemaker === 'Sim').length;
+    let normoCount = 0, sobreCount = 0;
+    patients.forEach(p => {
+      const s = hydrationStatus(p);
+      if (s === 'normo') normoCount++;
+      else if (s === 'sobre') sobreCount++;
+    });
+    return { total, normoCount, sobreCount, naCount };
+  }
+
+  function updateStats() {
+    const { total, normoCount, sobreCount, naCount } = computeStats();
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-normo').textContent = normoCount;
+    document.getElementById('stat-sobre').textContent = sobreCount;
+    document.getElementById('stat-na').textContent = naCount;
+  }
+
+  function renderCharts() {
+    updateStats();
+    const mk = selectedMonth;
+
+    // Donut
+    const evaluable = patients.filter(p => p.pacemaker !== 'Sim');
+    let normoE = 0, sobreE = 0, semDados = 0;
+    evaluable.forEach(p => {
+      const s = hydrationStatusForMonth(p, mk);
+      if (s === 'normo') normoE++;
+      else if (s === 'sobre') sobreE++;
+      else semDados++;
+    });
+    const ctxD = document.getElementById('chartDonut').getContext('2d');
+    if (chartDonut) chartDonut.destroy();
+    const donutData = [normoE, sobreE, semDados];
+    const donutLabels = ['Normohidratados', 'Sobrehidratados', 'Sem avaliação'];
+    const donutColors = ['#2a7a5a', '#b83232', '#cbd5e1'];
+    chartDonut = new Chart(ctxD, {
+      type: 'doughnut',
+      data: { labels: donutLabels, datasets: [{ data: donutData, backgroundColor: donutColors, borderWidth: 2, borderColor: '#fff', hoverOffset: 6 }] },
+      options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed}` } } } }
+    });
+    document.getElementById('legendDonut').innerHTML = donutLabels.map((l,i) =>
+      `<div class="legend-item"><div class="legend-dot" style="background:${donutColors[i]}"></div>${l}: <strong>${donutData[i]}</strong></div>`
+    ).join('');
+
+    // Bar: avaliados por turno
+    const turnoAval = {};
+    TURNOS.forEach(t => turnoAval[t] = 0);
+    patients.forEach(p => {
+      if (p.pacemaker === 'Sim') return;
+      const rec = getLatestBcmForMonth(p, mk);
+      if (rec) turnoAval[p.turno] = (turnoAval[p.turno] || 0) + 1;
+    });
+    const ctxT = document.getElementById('chartTurno').getContext('2d');
+    if (chartTurno) chartTurno.destroy();
+    chartTurno = new Chart(ctxT, {
+      type: 'bar',
+      data: {
+        labels: TURNOS.map(t => t.replace(' ', '\n')),
+        datasets: [{ label: 'Avaliados', data: TURNOS.map(t => turnoAval[t] || 0), backgroundColor: '#2d7dd2cc', borderColor: '#2d7dd2', borderWidth: 1.5, borderRadius: 6 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } }, grid: { color: '#e8edf3' } }, x: { ticks: { font: { size: 10 } }, grid: { display: false } } } }
+    });
+
+    // Stacked bar
+    const turnoNormo = {}, turnoSobre = {}, turnoSem = {};
+    TURNOS.forEach(t => { turnoNormo[t] = 0; turnoSobre[t] = 0; turnoSem[t] = 0; });
+    patients.forEach(p => {
+      if (p.pacemaker === 'Sim') return;
+      const s = hydrationStatusForMonth(p, mk);
+      const t = p.turno;
+      if (s === 'normo') turnoNormo[t]++;
+      else if (s === 'sobre') turnoSobre[t]++;
+      else turnoSem[t]++;
+    });
+    const ctxS = document.getElementById('chartTurnoStack').getContext('2d');
+    if (chartTurnoStack) chartTurnoStack.destroy();
+    chartTurnoStack = new Chart(ctxS, {
+      type: 'bar',
+      data: {
+        labels: TURNOS.map(t => t.replace(' ', '\n')),
+        datasets: [
+          { label: 'Normohidratados', data: TURNOS.map(t => turnoNormo[t]), backgroundColor: '#2a7a5acc', borderColor: '#2a7a5a', borderWidth: 1, borderRadius: 4 },
+          { label: 'Sobrehidratados', data: TURNOS.map(t => turnoSobre[t]), backgroundColor: '#b83232cc', borderColor: '#b83232', borderWidth: 1, borderRadius: 4 },
+          { label: 'Sem dados', data: TURNOS.map(t => turnoSem[t]), backgroundColor: '#cbd5e1', borderColor: '#aab4c2', borderWidth: 1, borderRadius: 4 }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { stacked: true, ticks: { font: { size: 10 } }, grid: { display: false } }, y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } }, grid: { color: '#e8edf3' } } } }
+    });
+  }
+
+  function showToast(msg) {
+    document.getElementById('toast-msg').textContent = msg || 'Guardado!';
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2800);
+  }
+
+  function formatDate(d) {
+    if (!d) return '—';
+    const [y, m, day] = d.split('-');
+    return `${day}/${m}/${y}`;
+  }
+
+  function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  // ── Results section ──
+  let resSelectedMonth = 'all';
+
+  function buildResMonthPills() {
+    const monthSet = new Set();
+    patients.forEach(p => (p.bcm || []).forEach(b => {
+      if (b.data) monthSet.add(b.data.slice(0, 7));
+    }));
+    const months = Array.from(monthSet).sort().reverse();
+    const container = document.getElementById('res-month-pills');
+    if (!container) return;
+    let html = `<button class="month-pill all ${resSelectedMonth === 'all' ? 'active' : ''}" onclick="selectResMonth('all')">Todos</button>`;
+    months.forEach(m => {
+      const [y, mon] = m.split('-');
+      const label = `${MESES_PT[parseInt(mon,10)-1]} ${y}`;
+      html += `<button class="month-pill ${resSelectedMonth === m ? 'active' : ''}" onclick="selectResMonth('${m}')">${label}</button>`;
+    });
+    container.innerHTML = html;
+    const ctx = document.getElementById('res-month-context');
+    if (ctx) ctx.innerHTML = resSelectedMonth === 'all'
+      ? 'A mostrar <strong>todos os registos</strong>'
+      : (() => { const [y,mon]=resSelectedMonth.split('-'); return `A mostrar <strong>${MESES_PT[parseInt(mon,10)-1]} ${y}</strong>`; })();
+  }
+
+  function selectResMonth(key) {
+    resSelectedMonth = key;
+    buildResMonthPills();
+    renderResults();
+  }
+
+  function renderResults() {
+    const q = (document.getElementById('res-search')?.value || '').toLowerCase();
+    const mk = resSelectedMonth;
+
+    const filtered = patients
+      .filter(p =>
+        p.nome.toLowerCase().includes(q) ||
+        p.medico.toLowerCase().includes(q) ||
+        p.turno.toLowerCase().includes(q)
+      )
+      .sort((a, b) => a.nome.localeCompare(b.nome, 'pt', { sensitivity: 'base' }));
+
+    const container = document.getElementById('results-list');
+
+    if (!filtered.length) {
+      document.getElementById('res-count-badge').textContent = '0 doentes';
+      container.innerHTML = `<div class="res-empty-section">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        <p>${patients.length ? 'Nenhum resultado encontrado.' : 'Ainda não existem doentes registados.'}</p>
+      </div>`; return;
+    }
+
+    const rows = [];
+    filtered.forEach(p => {
+      const isPace = p.pacemaker === 'Sim';
+      const limit = ohThreshold(p.genero);
+      const allBcm = p.bcm || [];
+      const bcmForMonth = mk === 'all' ? allBcm : allBcm.filter(b => b.data && b.data.startsWith(mk));
+      const records = bcmForMonth;
+
+      if (isPace || !records.length) {
+        let statusCell = isPace
+          ? `<td colspan="5" style="color:#999;font-style:italic;text-align:center;">Não avaliável — Pacemaker/CDI</td>`
+          : `<td colspan="5" style="color:#bbb;font-style:italic;text-align:center;">${mk !== 'all' ? (() => { const [y,mon]=mk.split('-'); return 'Sem avaliação em ' + MESES_PT[parseInt(mon,10)-1]+' '+y; })() : 'Sem avaliações registadas'}</td>`;
+        rows.push(`<tr class="flat-patient-first">
+          <td rowspan="1" class="flat-name-cell"><div class="flat-name">${escHtml(p.nome)}</div><div class="flat-meta">${p.turno} · ${escHtml(p.medico)}</div></td>
+          <td class="flat-info-cell"><span class="tag ${isPace ? 'tag-yes' : 'tag-no'}" style="font-size:0.68rem">PCM/CDI: ${p.pacemaker}</span></td>
+          ${statusCell}</tr>`);
+      } else {
+        records.forEach((b, idx) => {
+          const ohVal = b.oh !== null && b.oh !== undefined ? b.oh : null;
+          const ohClass = ohVal !== null ? (ohVal <= limit ? 'val-green' : 'val-red') : '';
+          const ohDisp = ohVal !== null ? `<span class="${ohClass}">${ohVal} L</span>` : '<span style="color:#bbb">—</span>';
+          let statusCell = '<span style="color:#bbb;font-size:0.78rem">—</span>';
+          if (ohVal !== null) statusCell = ohVal <= limit
+            ? `<span class="res-status-badge normo" style="font-size:0.7rem">✓ Normo</span>`
+            : `<span class="res-status-badge sobre" style="font-size:0.7rem">⚠ Sobre</span>`;
+
+          if (idx === 0) {
+            rows.push(`<tr class="flat-patient-first">
+              <td rowspan="${records.length}" class="flat-name-cell"><div class="flat-name">${escHtml(p.nome)}</div><div class="flat-meta">${p.turno} · ${escHtml(p.medico)}</div></td>
+              <td rowspan="${records.length}" class="flat-info-cell"><span class="tag ${isPace ? 'tag-yes' : 'tag-no'}" style="font-size:0.68rem">PCM/CDI: ${p.pacemaker}</span></td>
+              <td>${formatDate(b.data)}</td><td>${ohDisp}</td>
+              <td>${b.vdu !== null && b.vdu !== undefined ? b.vdu + ' L' : '<span style="color:#bbb">—</span>'}</td>
+              <td>${b.pseco !== null && b.pseco !== undefined ? b.pseco + ' kg' : '<span style="color:#bbb">—</span>'}</td>
+              <td>${b.pnormo !== null && b.pnormo !== undefined ? b.pnormo + ' kg' : '<span style="color:#bbb">—</span>'}</td>
+              <td>${statusCell}</td></tr>`);
+          } else {
+            rows.push(`<tr class="flat-patient-cont">
+              <td>${formatDate(b.data)}</td><td>${ohDisp}</td>
+              <td>${b.vdu !== null && b.vdu !== undefined ? b.vdu + ' L' : '<span style="color:#bbb">—</span>'}</td>
+              <td>${b.pseco !== null && b.pseco !== undefined ? b.pseco + ' kg' : '<span style="color:#bbb">—</span>'}</td>
+              <td>${b.pnormo !== null && b.pnormo !== undefined ? b.pnormo + ' kg' : '<span style="color:#bbb">—</span>'}</td>
+              <td>${statusCell}</td></tr>`);
+          }
+        });
+      }
+    });
+
+    document.getElementById('res-count-badge').textContent =
+      filtered.length + ' doente' + (filtered.length !== 1 ? 's' : '');
+
+    container.innerHTML = `
+      <div class="flat-table-wrap">
+        <table class="flat-table">
+          <thead><tr><th>Doente</th><th>PCM/CDI</th><th>Data</th><th>OH (L)</th><th>VDU (L)</th><th>Peso Seco (kg)</th><th>Peso Normo (kg)</th><th>Estado</th></tr></thead>
+          <tbody>${rows.join('')}</tbody>
+        </table>
+      </div>`;
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  REPORTS
+  // ══════════════════════════════════════════════════════
+  let repSelectedMonth = 'all';
+
+  function buildRepMonthPills() {
+    const monthSet = new Set();
+    patients.forEach(p => (p.bcm || []).forEach(b => {
+      if (b.data) monthSet.add(b.data.slice(0, 7));
+    }));
+    const months = Array.from(monthSet).sort().reverse();
+    const container = document.getElementById('rep-month-pills');
+    if (!container) return;
+    let html = `<button class="month-pill all ${repSelectedMonth === 'all' ? 'active' : ''}" onclick="selectRepMonth('all')">Todos</button>`;
+    months.forEach(m => {
+      const [y, mon] = m.split('-');
+      const label = `${MESES_PT[parseInt(mon,10)-1]} ${y}`;
+      html += `<button class="month-pill ${repSelectedMonth === m ? 'active' : ''}" onclick="selectRepMonth('${m}')">${label}</button>`;
+    });
+    container.innerHTML = html;
+    const ctx = document.getElementById('rep-month-context');
+    if (ctx) ctx.innerHTML = repSelectedMonth === 'all'
+      ? 'A mostrar <strong>todos os registos</strong>'
+      : (() => { const [y,mon]=repSelectedMonth.split('-'); return `A mostrar <strong>${MESES_PT[parseInt(mon,10)-1]} ${y}</strong>`; })();
+  }
+
+  function selectRepMonth(key) {
+    repSelectedMonth = key;
+    buildRepMonthPills();
+    renderReportPreview();
+  }
+
+  function getReportData() {
+    const mk = repSelectedMonth;
+    const rows = [];
+    let totalEvals = 0, normoCount = 0, sobreCount = 0, naCount = 0;
+
+    const sorted = [...patients].sort((a,b) => a.nome.localeCompare(b.nome,'pt',{sensitivity:'base'}));
+    sorted.forEach(p => {
+      const isPace = p.pacemaker === 'Sim';
+      if (isPace) naCount++;
+      const allBcm = p.bcm || [];
+      const limit = ohThreshold(p.genero);
+
+      if (mk === 'all') {
+        // One row per patient: most recent evaluation regardless of month
+        if (!allBcm.length) {
+          rows.push({ patient: p, eval: null, isPace, status: isPace ? 'na' : null });
+        } else {
+          const latest = allBcm[0]; // already sorted desc
+          const ohVal = latest.oh !== null && latest.oh !== undefined ? latest.oh : null;
+          let status = null;
+          if (!isPace && ohVal !== null) {
+            status = ohVal <= limit ? 'normo' : 'sobre';
+            if (status === 'normo') normoCount++;
+            else sobreCount++;
+          }
+          totalEvals++;
+          rows.push({ patient: p, eval: latest, isPace, status, isFirst: true, rowSpan: 1 });
+        }
+      } else {
+        // Per-month view: all evaluations in that month
+        const bcmForMonth = allBcm.filter(b => b.data && b.data.startsWith(mk));
+        if (!bcmForMonth.length) {
+          rows.push({ patient: p, eval: null, isPace, status: isPace ? 'na' : null });
+        } else {
+          bcmForMonth.forEach((b, idx) => {
+            const ohVal = b.oh !== null && b.oh !== undefined ? b.oh : null;
+            let status = null;
+            if (!isPace && ohVal !== null) {
+              status = ohVal <= limit ? 'normo' : 'sobre';
+              if (idx === 0) {
+                if (status === 'normo') normoCount++;
+                else sobreCount++;
+              }
+            }
+            totalEvals++;
+            rows.push({ patient: p, eval: b, isPace, status, isFirst: idx === 0, rowSpan: bcmForMonth.length });
+          });
+        }
+      }
+    });
+    return { rows, totalEvals, normoCount, sobreCount, naCount };
+  }
+
+  function renderReportPreview() {
+    const { rows, totalEvals, normoCount, sobreCount, naCount } = getReportData();
+    const mk = repSelectedMonth;
+
+    // Summary bar
+    const summaryBar = document.getElementById('rep-summary-bar');
+    if (summaryBar) {
+      const periodLabel = mk === 'all' ? 'Todos os períodos' : (() => { const [y,mon]=mk.split('-'); return MESES_PT[parseInt(mon,10)-1]+' '+y; })();
+      summaryBar.innerHTML = `
+        <div class="report-summary-item">
+          <div class="rs-icon" style="background:var(--accent2)"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+          <div><div class="rs-num">${patients.length}</div><div class="rs-lbl">Doentes</div></div>
+        </div>
+        <div class="report-summary-item">
+          <div class="rs-icon" style="background:#6a3ab2"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+          <div><div class="rs-num">${totalEvals}</div><div class="rs-lbl">Avaliações</div></div>
+        </div>
+        <div class="report-summary-item">
+          <div class="rs-icon" style="background:var(--green)"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div><div class="rs-num">${normoCount}</div><div class="rs-lbl">Normohidratados</div></div>
+        </div>
+        <div class="report-summary-item">
+          <div class="rs-icon" style="background:var(--red)"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+          <div><div class="rs-num">${sobreCount}</div><div class="rs-lbl">Sobrehidratados</div></div>
+        </div>
+        <div class="report-summary-item">
+          <div class="rs-icon" style="background:#c07800"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+          <div><div class="rs-num">${naCount}</div><div class="rs-lbl">Não Avaliáveis</div></div>
+        </div>`;
+    }
+
+    // Preview table
+    const wrap = document.getElementById('rep-preview-wrap');
+    if (!rows.length) {
+      wrap.innerHTML = `<div class="empty-state" style="padding:40px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><p>Sem dados para o período selecionado.</p></div>`;
+      return;
+    }
+
+    wrap.innerHTML = `<div class="flat-table-wrap">${buildReportTableHTML(rows)}</div>`;
+  }
+
+  function buildReportTableHTML(rows) {
+    const tableRows = rows.map(r => {
+      const p = r.patient;
+      const limit = ohThreshold(p.genero);
+      const isPace = r.isPace;
+
+      if (!r.eval) {
+        const statusCell = isPace
+          ? `<td colspan="5" style="color:#999;font-style:italic;text-align:center;">Não avaliável — Pacemaker/CDI</td>`
+          : `<td colspan="5" style="color:#bbb;font-style:italic;text-align:center;">Sem avaliação no período</td>`;
+        return `<tr class="flat-patient-first">
+          <td class="flat-name-cell"><div class="flat-name">${escHtml(p.nome)}</div><div class="flat-meta">${p.genero} · ${p.turno}</div></td>
+          <td class="flat-info-cell" style="white-space:nowrap">${escHtml(p.medico)}</td>
+          <td class="flat-info-cell"><span class="tag ${isPace?'tag-yes':'tag-no'}" style="font-size:0.68rem">PCM/CDI: ${p.pacemaker}</span></td>
+          ${statusCell}</tr>`;
+      }
+
+      const b = r.eval;
+      const ohVal = b.oh !== null && b.oh !== undefined ? b.oh : null;
+      const ohClass = ohVal !== null ? (ohVal <= limit ? 'val-green' : 'val-red') : '';
+      const ohDisp = ohVal !== null ? `<span class="${ohClass}">${ohVal} L</span>` : '—';
+      let statusBadge = '—';
+      if (ohVal !== null) statusBadge = ohVal <= limit
+        ? `<span class="res-status-badge normo" style="font-size:0.7rem">✓ Normo</span>`
+        : `<span class="res-status-badge sobre" style="font-size:0.7rem">⚠ Sobre</span>`;
+
+      if (r.isFirst) {
+        return `<tr class="flat-patient-first">
+          <td rowspan="${r.rowSpan}" class="flat-name-cell"><div class="flat-name">${escHtml(p.nome)}</div><div class="flat-meta">${p.genero} · ${p.turno}</div></td>
+          <td rowspan="${r.rowSpan}" class="flat-info-cell" style="white-space:nowrap">${escHtml(p.medico)}</td>
+          <td rowspan="${r.rowSpan}" class="flat-info-cell"><span class="tag ${isPace?'tag-yes':'tag-no'}" style="font-size:0.68rem">PCM/CDI: ${p.pacemaker}</span></td>
+          <td>${formatDate(b.data)}</td><td>${ohDisp}</td>
+          <td>${b.vdu != null ? b.vdu + ' L' : '—'}</td>
+          <td>${b.pseco != null ? b.pseco + ' kg' : '—'}</td>
+          <td>${b.pnormo != null ? b.pnormo + ' kg' : '—'}</td>
+          <td>${statusBadge}</td></tr>`;
+      } else {
+        return `<tr class="flat-patient-cont">
+          <td>${formatDate(b.data)}</td><td>${ohDisp}</td>
+          <td>${b.vdu != null ? b.vdu + ' L' : '—'}</td>
+          <td>${b.pseco != null ? b.pseco + ' kg' : '—'}</td>
+          <td>${b.pnormo != null ? b.pnormo + ' kg' : '—'}</td>
+          <td>${statusBadge}</td></tr>`;
+      }
+    }).join('');
+
+    return `<table class="flat-table">
+      <thead><tr>
+        <th>Doente</th><th>Médico</th><th>PCM/CDI</th>
+        <th>Data</th><th>OH (L)</th><th>VDU (L)</th>
+        <th>Peso Seco (kg)</th><th>Peso Normo (kg)</th><th>Estado</th>
+      </tr></thead>
+      <tbody>${tableRows}</tbody>
+    </table>`;
+  }
+
+  function downloadReport() {
+    if (typeof XLSX === 'undefined') {
+      alert('Biblioteca Excel ainda a carregar. Aguarde um momento e tente novamente.');
+      return;
+    }
+
+    const mk = repSelectedMonth;
+    const periodLabel = mk === 'all' ? 'Todos os períodos'
+      : (() => { const [y,mon]=mk.split('-'); return MESES_PT[parseInt(mon,10)-1]+' '+y; })();
+    const { rows, totalEvals, normoCount, sobreCount, naCount } = getReportData();
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('pt-PT', { day:'2-digit', month:'2-digit', year:'numeric' });
+    const timeStr = now.toLocaleTimeString('pt-PT', { hour:'2-digit', minute:'2-digit' });
+
+    const wb = XLSX.utils.book_new();
+
+    // ── Sheet 1: Avaliações ──────────────────────────────
+    const dataRows = [];
+    const sorted = [...patients].sort((a,b) => a.nome.localeCompare(b.nome,'pt',{sensitivity:'base'}));
+
+    sorted.forEach(p => {
+      const isPace = p.pacemaker === 'Sim';
+      const allBcm = p.bcm || [];
+      const limit = ohThreshold(p.genero);
+
+      let bcmToExport;
+      if (mk === 'all') {
+        // One row per patient: most recent evaluation only
+        bcmToExport = allBcm.length ? [allBcm[0]] : [];
+      } else {
+        bcmToExport = allBcm.filter(b => b.data && b.data.startsWith(mk));
+      }
+
+      if (isPace || !bcmToExport.length) {
+        dataRows.push({
+          'Nome do Doente':     p.nome,
+          'Peso Seco (kg)':     null,
+          'Peso NH (kg)':       null,
+          'V. Ureia (L)':       null,
+          'Data da Avaliação':  null,
+          'OH (L)':             null,
+          'Estado':             isPace ? 'Não avaliável (PCM/CDI)' : 'Sem avaliação no período',
+          'Turno':              p.turno,
+          'Médico':             p.medico,
+          'Género':             p.genero,
+        });
+      } else {
+        bcmToExport.forEach(b => {
+          const ohVal = b.oh !== null && b.oh !== undefined ? b.oh : null;
+          const estado = ohVal !== null
+            ? (ohVal <= limit ? 'Normohidratado' : 'Sobrehidratado')
+            : '—';
+          // Format date as dd/mm/yyyy
+          const dataFormatada = b.data ? formatDate(b.data) : null;
+          dataRows.push({
+            'Nome do Doente':     p.nome,
+            'Peso Seco (kg)':     b.pseco !== null && b.pseco !== undefined ? b.pseco : null,
+            'Peso NH (kg)':       b.pnormo !== null && b.pnormo !== undefined ? b.pnormo : null,
+            'V. Ureia (L)':       b.vdu !== null && b.vdu !== undefined ? b.vdu : null,
+            'Data da Avaliação':  dataFormatada,
+            'OH (L)':             ohVal,
+            'Estado':             estado,
+            'Turno':              p.turno,
+            'Médico':             p.medico,
+            'Género':             p.genero,
+          });
+        });
+      }
+    });
+
+    const ws = XLSX.utils.json_to_sheet(dataRows, {
+      header: ['Nome do Doente','Peso Seco (kg)','Peso NH (kg)','V. Ureia (L)','Data da Avaliação','OH (L)','Estado','Turno','Médico','Género']
+    });
+
+    // Column widths
+    ws['!cols'] = [
+      { wch: 30 }, // Nome
+      { wch: 14 }, // Peso Seco
+      { wch: 12 }, // Peso NH
+      { wch: 13 }, // V. Ureia
+      { wch: 18 }, // Data
+      { wch: 10 }, // OH
+      { wch: 22 }, // Estado
+      { wch: 16 }, // Turno
+      { wch: 18 }, // Médico
+      { wch: 10 }, // Género
+    ];
+
+    // Style header row (row 1) — dark blue bg, white bold text
+    const headerStyle = {
+      font: { bold: true, color: { rgb: 'FFFFFF' }, name: 'Arial', sz: 10 },
+      fill: { fgColor: { rgb: '1A4D7C' }, patternType: 'solid' },
+      alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+      border: {
+        bottom: { style: 'medium', color: { rgb: 'FFFFFF' } },
+        right:  { style: 'thin',   color: { rgb: 'FFFFFF' } },
+      },
+    };
+    const cols = ['A','B','C','D','E','F','G','H','I','J'];
+    cols.forEach(c => {
+      const cell = ws[c + '1'];
+      if (cell) cell.s = headerStyle;
+    });
+
+    // Style data rows
+    const greenFill = { fgColor: { rgb: 'EDF7F3' }, patternType: 'solid' };
+    const redFill   = { fgColor: { rgb: 'FDF0F0' }, patternType: 'solid' };
+    const altFill   = { fgColor: { rgb: 'F4F8FF' }, patternType: 'solid' };
+    const baseFont  = { name: 'Arial', sz: 10 };
+    const greenFont = { name: 'Arial', sz: 10, bold: true, color: { rgb: '2A7A5A' } };
+    const redFont   = { name: 'Arial', sz: 10, bold: true, color: { rgb: 'B83232' } };
+    const mutedFont = { name: 'Arial', sz: 10, color: { rgb: '888888' }, italic: true };
+    const centerAlign = { horizontal: 'center', vertical: 'center' };
+    const leftAlign   = { horizontal: 'left',   vertical: 'center' };
+    const thinBorder  = { bottom: { style: 'thin', color: { rgb: 'E8EDF3' } } };
+
+    dataRows.forEach((row, i) => {
+      const r = i + 2; // Excel row (1-indexed, row 1 = header)
+      const isAlt = i % 2 === 1;
+      const estado = row['Estado'];
+      const isNormo = estado === 'Normohidratado';
+      const isSobre = estado === 'Sobrehidratado';
+      const isNA    = estado && (estado.startsWith('Não avaliável') || estado.startsWith('Sem avaliação'));
+
+      const rowFill = isNormo ? greenFill : isSobre ? redFill : isAlt ? altFill : null;
+
+      cols.forEach((c, ci) => {
+        const addr = c + r;
+        if (!ws[addr]) ws[addr] = { t: 'z', v: null };
+        const cell = ws[addr];
+        const colName = ['Nome do Doente','Peso Seco (kg)','Peso NH (kg)','V. Ureia (L)','Data da Avaliação','OH (L)','Estado','Turno','Médico','Género'][ci];
+
+        // Font
+        if (colName === 'OH (L)') {
+          cell.s = { font: isNormo ? greenFont : isSobre ? redFont : baseFont, alignment: centerAlign, border: thinBorder };
+        } else if (colName === 'Estado') {
+          cell.s = { font: isNormo ? greenFont : isSobre ? redFont : isNA ? mutedFont : baseFont, alignment: leftAlign, border: thinBorder };
+        } else if (['Peso Seco (kg)','Peso NH (kg)','V. Ureia (L)'].includes(colName)) {
+          cell.s = { font: baseFont, alignment: centerAlign, border: thinBorder };
+        } else if (colName === 'Data da Avaliação') {
+          cell.s = { font: baseFont, alignment: centerAlign, border: thinBorder };
+        } else {
+          cell.s = { font: baseFont, alignment: leftAlign, border: thinBorder };
+        }
+
+        if (rowFill) cell.s.fill = rowFill;
+      });
+    });
+
+    // Freeze header row
+    ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Avaliações BCM');
+
+    // ── Sheet 2: Resumo ──────────────────────────────────
+    const wsRes = XLSX.utils.aoa_to_sheet([
+      ['Relatório BCM — ' + periodLabel],
+      ['Nephrocare Funchal'],
+      ['Gerado em: ' + dateStr + ' às ' + timeStr],
+      [],
+      ['Resumo do Período'],
+      ['Total de Doentes',  patients.length],
+      ['Total de Avaliações', totalEvals],
+      ['Normohidratados',   normoCount],
+      ['Sobrehidratados',   sobreCount],
+      ['Não Avaliáveis (PCM/CDI)', naCount],
+    ]);
+
+    wsRes['!cols'] = [{ wch: 28 }, { wch: 14 }];
+
+    // Title style
+    const titleStyle = { font: { bold: true, name: 'Arial', sz: 14, color: { rgb: '1A4D7C' } } };
+    const sectionStyle = { font: { bold: true, name: 'Arial', sz: 11, color: { rgb: '1A4D7C' } }, fill: { fgColor: { rgb: 'DDEEFF' }, patternType: 'solid' } };
+    if (wsRes['A1']) wsRes['A1'].s = titleStyle;
+    if (wsRes['A2']) wsRes['A2'].s = { font: { name: 'Arial', sz: 10, color: { rgb: '5A6A80' } } };
+    if (wsRes['A3']) wsRes['A3'].s = { font: { name: 'Arial', sz: 10, color: { rgb: '5A6A80' }, italic: true } };
+    if (wsRes['A5']) wsRes['A5'].s = sectionStyle;
+    if (wsRes['B5']) wsRes['B5'].s = sectionStyle;
+
+    // Color the values
+    const normoRowStyle = { font: { bold: true, name: 'Arial', sz: 10, color: { rgb: '2A7A5A' } } };
+    const sobreRowStyle = { font: { bold: true, name: 'Arial', sz: 10, color: { rgb: 'B83232' } } };
+    if (wsRes['A8']) wsRes['A8'].s = normoRowStyle;
+    if (wsRes['B8']) wsRes['B8'].s = normoRowStyle;
+    if (wsRes['A9']) wsRes['A9'].s = sobreRowStyle;
+    if (wsRes['B9']) wsRes['B9'].s = sobreRowStyle;
+
+    XLSX.utils.book_append_sheet(wb, wsRes, 'Resumo');
+
+    // ── Download ─────────────────────────────────────────
+    const fname = `relatorio-bcm-${mk === 'all' ? 'completo' : mk}-${now.toISOString().slice(0,10)}.xlsx`;
+    XLSX.writeFile(wb, fname);
+    showToast('Relatório Excel descarregado!');
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  EDIT EVALUATION MODAL
+  // ══════════════════════════════════════════════════════
+
+  function openEditModal(evalId) {
+    // Find the evaluation across all patients
+    let targetEval = null;
+    for (const p of patients) {
+      const found = (p.bcm || []).find(b => b.id === evalId);
+      if (found) { targetEval = found; break; }
+    }
+    if (!targetEval) { showToast('Avaliação não encontrada.'); return; }
+
+    document.getElementById('edit-eval-id').value = evalId;
+    document.getElementById('edit-bcm-data').value = targetEval.data || '';
+    document.getElementById('edit-bcm-oh').value = targetEval.oh !== null && targetEval.oh !== undefined ? targetEval.oh : '';
+    document.getElementById('edit-bcm-vdu').value = targetEval.vdu !== null && targetEval.vdu !== undefined ? targetEval.vdu : '';
+    document.getElementById('edit-bcm-pseco').value = targetEval.pseco !== null && targetEval.pseco !== undefined ? targetEval.pseco : '';
+    document.getElementById('edit-bcm-pnormo').value = targetEval.pnormo !== null && targetEval.pnormo !== undefined ? targetEval.pnormo : '';
+    document.getElementById('edit-modal-date-label').textContent = 'Avaliação de ' + formatDate(targetEval.data);
+
+    document.getElementById('edit-eval-modal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeEditModal() {
+    document.getElementById('edit-eval-modal').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  document.getElementById('edit-eval-modal').addEventListener('click', function(e) { if (e.target === this) closeEditModal(); });
+
+  async function saveEditedBcm() {
+    const evalId = document.getElementById('edit-eval-id').value;
+    const data   = document.getElementById('edit-bcm-data').value;
+    const oh     = document.getElementById('edit-bcm-oh').value;
+    const vdu    = document.getElementById('edit-bcm-vdu').value;
+    const pseco  = document.getElementById('edit-bcm-pseco').value;
+    const pnormo = document.getElementById('edit-bcm-pnormo').value;
+
+    if (!data || oh === '') { alert('A data e o valor de sobrehidratação (OH) são obrigatórios.'); return; }
+    if (!db) { alert('Sem ligação ao Firebase.'); return; }
+
+    // Find the patientId for this evaluation
+    let patientId = null;
+    for (const p of patients) {
+      if ((p.bcm || []).find(b => b.id === evalId)) { patientId = p.id; break; }
+    }
+
+    const updates = {
+      data,
+      oh: parseFloat(oh),
+      vdu: vdu !== '' ? parseFloat(vdu) : null,
+      psp: pseco !== '' ? parseFloat(pseco) : null,
+      pnh: pnormo !== '' ? parseFloat(pnormo) : null,
+      patientId,
+      editadoEm: new Date().toISOString(),
+    };
+    // Remove null fields
+    Object.keys(updates).forEach(k => updates[k] === null && delete updates[k]);
+
+    try {
+      await db.ref('evaluations/' + evalId).update(updates);
+      closeEditModal();
+      showToast('Avaliação atualizada com sucesso!');
+    } catch(e) { showToast('Erro ao atualizar avaliação: ' + e.message); }
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  PRIORITIES SECTION
+  // ══════════════════════════════════════════════════════
+
+  function daysSinceLastEval(p) {
+    if (!p.bcm || !p.bcm.length) return Infinity;
+    // Most recent by date
+    const sorted = [...p.bcm].sort((a, b) => (b.data || '').localeCompare(a.data || ''));
+    const lastDate = sorted[0].data;
+    if (!lastDate) return Infinity;
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const last = new Date(lastDate + 'T00:00:00');
+    return Math.floor((today - last) / 86400000);
+  }
+
+  function renderPriorities() {
+    const TURNOS_PAR   = ['Par Manhã', 'Par Tarde', 'Par Noite'];
+    const TURNOS_IMPAR = ['Ímpar Manhã', 'Ímpar Tarde', 'Ímpar Noite'];
+    const ICONS = { 'Manhã': '🌅', 'Tarde': '🌇', 'Noite': '🌙' };
+
+    function buildGrid(turnos, containerId) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      const cols = turnos.map(turno => {
+        const slot = turno.includes('Manhã') ? 'Manhã' : turno.includes('Tarde') ? 'Tarde' : 'Noite';
+        const parite = turno.startsWith('Par ') ? 'Par' : 'Ímpar';
+        // Get patients for this shift
+        const shifted = patients
+          .filter(p => p.turno === turno && p.pacemaker !== 'Sim')
+          .map(p => ({ ...p, dias: daysSinceLastEval(p) }))
+          .sort((a, b) => {
+            if (b.dias === a.dias) return a.nome.localeCompare(b.nome, 'pt');
+            if (b.dias === Infinity && a.dias === Infinity) return 0;
+            if (b.dias === Infinity) return 1;
+            if (a.dias === Infinity) return -1;
+            return b.dias - a.dias;
+          })
+          .slice(0, 5);
+
+        const totalShift = patients.filter(p => p.turno === turno && p.pacemaker !== 'Sim').length;
+        const cards = shifted.length === 0
+          ? `<div class="priority-empty">Sem doentes avaliáveis neste turno</div>`
+          : shifted.map((p, idx) => {
+              const rank = idx + 1;
+              const rankClass = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : '';
+              let diasLabel, diasClass, badge, badgeClass;
+              if (p.dias === Infinity) {
+                diasLabel = 'Nunca avaliado';
+                diasClass = 'urgent';
+                badge = 'Sem avaliação';
+                badgeClass = 'late-high';
+              } else {
+                diasLabel = `Há ${p.dias} dia${p.dias !== 1 ? 's' : ''}`;
+                diasClass = p.dias >= 60 ? 'urgent' : p.dias >= 30 ? 'warning' : '';
+                badge = p.dias >= 60 ? `${p.dias}d atraso` : p.dias >= 30 ? `${p.dias}d` : `${p.dias}d`;
+                badgeClass = p.dias >= 60 ? 'late-high' : p.dias >= 30 ? 'late-med' : 'late-low';
+              }
+              return `<div class="priority-card" onclick="openEditPatientModal('${p.id}')" title="Clique para editar dados do doente">
+                <div class="priority-rank ${rankClass}">${rank}</div>
+                <div class="priority-info">
+                  <div class="priority-name">${escHtml(p.nome)}</div>
+                  <div class="priority-days ${diasClass}">${diasLabel} · ${escHtml(p.medico)}</div>
+                </div>
+                <span class="priority-badge ${badgeClass}">${badge}</span>
+              </div>`;
+            }).join('');
+
+        return `<div class="priority-col">
+          <div class="priority-col-header ${slot.toLowerCase()}">
+            ${ICONS[slot]} ${turno}
+            <div style="margin-left:auto;"><div class="pch-sub">${totalShift} doente${totalShift !== 1 ? 's' : ''}</div></div>
+          </div>
+          <div class="priority-list">${cards}</div>
+        </div>`;
+      });
+      container.innerHTML = cols.join('');
+    }
+
+    buildGrid(TURNOS_PAR, 'priority-par');
+    buildGrid(TURNOS_IMPAR, 'priority-impar');
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  EDIT PATIENT MODAL
+  // ══════════════════════════════════════════════════════
+
+  function openEditPatientModal(patientId) {
+    const p = patients.find(x => x.id === patientId);
+    if (!p) return;
+    document.getElementById('edit-patient-id').value = patientId;
+    document.getElementById('ep-nome').value = p.nome || '';
+    document.getElementById('ep-turno').value = p.turno || '';
+    document.getElementById('ep-medico').value = p.medico || '';
+    document.getElementById('edit-patient-sub').textContent = p.nome || '—';
+    document.getElementById('edit-patient-modal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeEditPatientModal() {
+    document.getElementById('edit-patient-modal').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  document.getElementById('edit-patient-modal').addEventListener('click', function(e) { if (e.target === this) closeEditPatientModal(); });
+
+  async function saveEditedPatient() {
+    const id    = document.getElementById('edit-patient-id').value;
+    const nome  = document.getElementById('ep-nome').value.trim();
+    const turno = document.getElementById('ep-turno').value;
+    const medico= document.getElementById('ep-medico').value;
+    if (!nome || !turno || !medico) { alert('Por favor preencha todos os campos.'); return; }
+    if (!db) { alert('Sem ligação ao Firebase.'); return; }
+    try {
+      await db.ref('patients/' + id).update({ nome, turno, medico, editadoEm: new Date().toISOString() });
+      closeEditPatientModal();
+      showToast('Dados do doente atualizados!');
+    } catch(e) { showToast('Erro ao atualizar: ' + e.message); }
+  }
+
+
+</script>
+</body>
+</html>
