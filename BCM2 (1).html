@@ -1,0 +1,2596 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Avaliação BCM</title>
+  <!-- Calibri is a system font; no external font import needed -->
+  <style>
+    /* Force Calibri as primary font stack */
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+  <!-- xlsx-js-style: SheetJS com suporte a estilos (cores no Excel) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+  <style>
+    :root {
+      --bg: #f0f4f8;
+      --surface: #ffffff;
+      --surface2: #e8edf3;
+      --border: #c9d4e0;
+      --accent: #1a4d7c;
+      --accent2: #2d7dd2;
+      --accent-light: #ddeeff;
+      --text: #1a2535;
+      --text-muted: #5a6a80;
+      --green: #2a7a5a;
+      --green-bg: #edf7f3;
+      --red: #b83232;
+      --red-bg: #fdf0f0;
+      --orange: #b86a00;
+      --shadow: 0 2px 16px rgba(26,77,124,0.10);
+      --radius: 12px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Calibri', Calibri, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ── Header ── */
+    header {
+      background: var(--accent); color: #fff; padding: 0 40px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 68px; box-shadow: 0 2px 12px rgba(26,77,124,0.3);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .header-brand { display: flex; align-items: center; gap: 14px; }
+    .header-logo { width: 38px; height: 38px; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+    .header-logo svg { width: 22px; height: 22px; fill: #fff; }
+    .header-title { font-family: 'Calibri', Calibri, sans-serif; font-size: 1.35rem; letter-spacing: 0.01em; }
+    .header-subtitle { font-size: 0.72rem; opacity: 0.65; letter-spacing: 0.06em; text-transform: uppercase; margin-top: 1px; }
+    .header-badge { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); border-radius: 20px; padding: 6px 16px; font-size: 0.78rem; letter-spacing: 0.04em; }
+
+    /* ── Nav ── */
+    nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 40px; display: flex; gap: 4px; }
+    .tab-btn { padding: 14px 22px; border: none; background: none; font-family: 'Calibri', sans-serif; font-size: 0.88rem; font-weight: 500; color: var(--text-muted); cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; letter-spacing: 0.02em; position: relative; top: 1px; }
+    .tab-btn:hover { color: var(--accent2); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent2); }
+
+    /* ── Main ── */
+    main { max-width: 1200px; margin: 40px auto; padding: 0 24px 60px; }
+    .section { display: none; }
+    .section.active { display: block; animation: fadeUp 0.35s ease; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+
+    /* ── Card ── */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 24px; }
+    .card-header { background: linear-gradient(135deg, var(--accent) 0%, #1e5a9a 100%); padding: 22px 28px; display: flex; align-items: center; gap: 14px; }
+    .card-header-icon { width: 42px; height: 42px; background: rgba(255,255,255,0.15); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .card-header-icon svg { width: 22px; height: 22px; stroke: #fff; fill: none; stroke-width: 1.8; }
+    .card-header h2 { font-family: 'Calibri', Calibri, sans-serif; font-size: 1.15rem; color: #fff; font-weight: 400; }
+    .card-header p { font-size: 0.78rem; color: rgba(255,255,255,0.65); margin-top: 2px; }
+    .card-body { padding: 28px; }
+
+    /* ── Form ── */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .form-group { display: flex; flex-direction: column; gap: 7px; }
+    .form-group.full { grid-column: 1 / -1; }
+    label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; }
+    label span.req { color: var(--red); margin-left: 2px; }
+    input[type="text"], input[type="number"], input[type="date"], select {
+      font-family: 'Calibri', sans-serif; font-size: 0.92rem; color: var(--text);
+      background: var(--bg); border: 1.5px solid var(--border); border-radius: 8px;
+      padding: 11px 14px; transition: border-color 0.2s, box-shadow 0.2s; outline: none;
+      -webkit-appearance: none; appearance: none;
+    }
+    input[type="text"]:focus, input[type="number"]:focus, input[type="date"]:focus, select:focus {
+      border-color: var(--accent2); box-shadow: 0 0 0 3px rgba(45,125,210,0.12); background: #fff;
+    }
+    .input-unit { position: relative; }
+    .input-unit input { width: 100%; padding-right: 52px; }
+    .input-unit .unit { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 0.78rem; font-weight: 600; color: var(--text-muted); pointer-events: none; }
+    .select-wrapper { position: relative; }
+    .select-wrapper::after { content: ''; position: absolute; right: 14px; top: 50%; transform: translateY(-50%); width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid var(--text-muted); pointer-events: none; }
+    .select-wrapper select { width: 100%; padding-right: 36px; }
+    .radio-group { display: flex; gap: 10px; flex-wrap: wrap; }
+    .radio-option { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border: 1.5px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.2s; font-size: 0.9rem; background: var(--bg); flex: 1; min-width: 110px; }
+    .radio-option:hover { border-color: var(--accent2); background: var(--accent-light); }
+    .radio-option input[type="radio"] { display: none; }
+    .radio-option .dot { width: 16px; height: 16px; border: 2px solid var(--border); border-radius: 50%; flex-shrink: 0; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+    .radio-option input[type="radio"]:checked + .dot { border-color: var(--accent2); background: var(--accent2); box-shadow: 0 0 0 3px rgba(45,125,210,0.18); }
+    .radio-option input[type="radio"]:checked + .dot::after { content: ''; width: 6px; height: 6px; background: #fff; border-radius: 50%; }
+    .radio-option:has(input:checked) { border-color: var(--accent2); background: var(--accent-light); color: var(--accent); font-weight: 500; }
+    .toggle-group { display: flex; gap: 10px; }
+    .toggle-option { flex: 1; padding: 11px; border: 1.5px solid var(--border); border-radius: 8px; cursor: pointer; text-align: center; font-size: 0.9rem; transition: all 0.2s; background: var(--bg); display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .toggle-option input[type="radio"] { display: none; }
+    .toggle-option:has(input:checked).yes { border-color: var(--green); background: var(--green-bg); color: var(--green); font-weight: 600; }
+    .toggle-option:has(input:checked).no  { border-color: var(--red);   background: var(--red-bg);   color: var(--red);   font-weight: 600; }
+    .toggle-option:hover { border-color: var(--accent2); }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+    .btn-row { display: flex; gap: 12px; justify-content: flex-end; margin-top: 28px; }
+    .btn { font-family: 'Calibri', sans-serif; font-size: 0.9rem; font-weight: 600; padding: 12px 28px; border-radius: 8px; border: none; cursor: pointer; transition: all 0.2s; letter-spacing: 0.02em; }
+    .btn-secondary { background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--border); color: var(--text); }
+    .btn-primary { background: var(--accent2); color: #fff; box-shadow: 0 3px 10px rgba(45,125,210,0.3); }
+    .btn-primary:hover { background: #1a6bbf; box-shadow: 0 4px 16px rgba(45,125,210,0.4); transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(0); }
+
+    /* ── Toast ── */
+    #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--green); color: #fff; padding: 14px 28px; border-radius: 40px; font-size: 0.9rem; font-weight: 500; box-shadow: 0 6px 24px rgba(0,0,0,0.15); transition: transform 0.35s cubic-bezier(.34,1.56,.64,1); z-index: 999; display: flex; align-items: center; gap: 10px; }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── List ── */
+    .list-controls { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; }
+    .search-box { flex: 1; font-family: 'Calibri', sans-serif; font-size: 0.9rem; padding: 10px 16px; border: 1.5px solid var(--border); border-radius: 8px; background: var(--surface); outline: none; transition: border-color 0.2s; }
+    .search-box:focus { border-color: var(--accent2); }
+    .count-badge { background: var(--accent-light); color: var(--accent); border: 1px solid #b3d6f5; border-radius: 20px; padding: 6px 14px; font-size: 0.8rem; font-weight: 600; white-space: nowrap; }
+    .patient-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    .patient-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; transition: box-shadow 0.2s, transform 0.2s; position: relative; overflow: hidden; }
+    .patient-card:hover { box-shadow: 0 4px 20px rgba(26,77,124,0.15); transform: translateY(-2px); }
+    .patient-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--accent2), #56a8f5); }
+    .patient-card.pacemaker-card::before { background: linear-gradient(90deg, #888, #bbb); }
+    .pc-name { font-family: 'Calibri', Calibri, sans-serif; font-size: 1.05rem; color: var(--text); margin-bottom: 10px; }
+    .pc-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .tag { font-size: 0.72rem; padding: 3px 10px; border-radius: 20px; font-weight: 500; }
+    .tag-gender { background: #e8f0ff; color: #2952a3; }
+    .tag-turn   { background: #fff4e0; color: #a0620a; }
+    .tag-yes    { background: #fde8e8; color: var(--red); }
+    .tag-no     { background: #e8f7f0; color: var(--green); }
+    .tag-bcm    { background: #f0e8ff; color: #6a2da3; }
+    .tag-normo  { background: var(--green-bg); color: var(--green); }
+    .tag-sobre  { background: var(--red-bg); color: var(--red); }
+    .tag-na     { background: #f0f0f0; color: #888; }
+    .pc-doctor { font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+    .pc-doctor::before { content: '⚕'; font-size: 0.85rem; }
+    .pc-actions { display: flex; gap: 8px; margin-top: 14px; border-top: 1px solid var(--border); padding-top: 12px; }
+    .btn-action { flex: 1; font-family: 'Calibri', sans-serif; font-size: 0.78rem; font-weight: 600; padding: 7px 10px; border-radius: 7px; border: none; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 5px; }
+    .btn-bcm { background: #f0e8ff; color: #6a2da3; }
+    .btn-bcm:hover { background: #e0d0ff; }
+    .btn-bcm:disabled { background: #f0f0f0; color: #aaa; cursor: not-allowed; }
+    .btn-del-sm { background: #fde8e8; color: var(--red); }
+    .btn-del-sm:hover { background: #fbd0d0; }
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+    .empty-state svg { width: 52px; height: 52px; opacity: 0.3; margin-bottom: 16px; }
+    .empty-state p { font-size: 0.95rem; }
+
+    /* ── BCM Modal ── */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(10,20,40,0.55); z-index: 200; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(3px); }
+    .modal-overlay.open { display: flex; animation: fadeIn 0.2s ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .modal { background: var(--surface); border-radius: var(--radius); width: 100%; max-width: 680px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(10,20,40,0.3); animation: slideUp 0.28s cubic-bezier(.34,1.46,.64,1); }
+    @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .modal-header { background: linear-gradient(135deg, #4a1a8c 0%, #6a3ab2 100%); padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 1; }
+    .modal-header-left { display: flex; align-items: center; gap: 12px; }
+    .modal-header-icon { width: 38px; height: 38px; background: rgba(255,255,255,0.15); border-radius: 9px; display: flex; align-items: center; justify-content: center; }
+    .modal-header-icon svg { width: 20px; height: 20px; stroke: #fff; fill: none; stroke-width: 1.8; }
+    .modal-title { font-family: 'Calibri', Calibri, sans-serif; font-size: 1.05rem; color: #fff; font-weight: 400; }
+    .modal-patient { font-size: 0.76rem; color: rgba(255,255,255,0.65); margin-top: 2px; }
+    .modal-close { width: 30px; height: 30px; background: rgba(255,255,255,0.12); border: none; border-radius: 7px; color: #fff; font-size: 1rem; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; justify-content: center; }
+    .modal-close:hover { background: rgba(255,255,255,0.25); }
+    .modal-body { padding: 24px; }
+    .modal-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .modal-form-grid .full { grid-column: 1 / -1; }
+
+    /* BCM history table */
+    .bcm-history { margin-top: 20px; }
+    .bcm-history-title { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .bcm-history-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .bcm-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    .bcm-table th { background: var(--bg); padding: 8px 12px; text-align: left; font-size: 0.72rem; font-weight: 600; color: var(--text-muted); letter-spacing: 0.05em; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+    .bcm-table td { padding: 9px 12px; border-bottom: 1px solid #eef1f5; vertical-align: middle; }
+    .bcm-table tr:last-child td { border-bottom: none; }
+    .bcm-table tr:hover td { background: #f7f9fc; }
+    .btn-del-row { background: none; border: none; color: #ccc; cursor: pointer; font-size: 0.85rem; padding: 3px 6px; border-radius: 5px; transition: all 0.2s; }
+    .btn-del-row:hover { background: #fde8e8; color: var(--red); }
+    .no-bcm { text-align: center; padding: 18px; color: var(--text-muted); font-size: 0.85rem; }
+    .val-green { color: var(--green); font-weight: 600; }
+    .val-red   { color: var(--red);   font-weight: 600; }
+
+    /* Pacemaker notice inside modal */
+    .pace-notice { background: #f5f5f5; border: 1px solid #ddd; border-radius: 10px; padding: 20px; text-align: center; color: #888; font-size: 0.9rem; margin-top: 8px; }
+    .pace-notice svg { display: block; margin: 0 auto 10px; opacity: 0.4; }
+
+    /* ── Intro / Dashboard ── */
+    .intro-hero { background: linear-gradient(135deg, var(--accent) 0%, #1e6aaa 100%); border-radius: var(--radius); padding: 36px 40px; color: #fff; margin-bottom: 24px; position: relative; overflow: hidden; }
+    .intro-hero::after { content: 'BCM'; position: absolute; right: -10px; bottom: -20px; font-family: 'Calibri', Calibri, sans-serif; font-size: 9rem; opacity: 0.07; pointer-events: none; line-height: 1; }
+    .intro-hero h1 { font-family: 'Calibri', Calibri, sans-serif; font-size: 1.9rem; font-weight: 400; margin-bottom: 8px; }
+    .intro-hero p { font-size: 0.9rem; opacity: 0.8; max-width: 540px; line-height: 1.65; }
+    .stat-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; display: flex; align-items: center; gap: 14px; }
+    .stat-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .stat-icon svg { width: 20px; height: 20px; stroke: #fff; fill: none; stroke-width: 1.8; }
+    .stat-icon.blue   { background: var(--accent2); }
+    .stat-icon.green  { background: #2a7a5a; }
+    .stat-icon.red    { background: #b83232; }
+    .stat-icon.orange { background: #c07800; }
+    .stat-num { font-family: 'Calibri', Calibri, sans-serif; font-size: 1.7rem; color: var(--text); line-height: 1; }
+    .stat-lbl { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+    .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+    .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; }
+    .chart-card.wide { grid-column: 1 / -1; }
+    .chart-title { font-family: 'Calibri', Calibri, sans-serif; font-size: 0.95rem; color: var(--text); margin-bottom: 4px; font-weight: 400; }
+    .chart-subtitle { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 18px; }
+    .chart-wrap { position: relative; }
+    .chart-wrap canvas { display: block; }
+    .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 14px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--text-muted); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+    /* ── Month filter ── */
+    .month-filter-bar {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px 20px; margin-bottom: 22px;
+      box-shadow: var(--shadow);
+    }
+    .month-filter-label {
+      font-size: 0.78rem; font-weight: 600; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap;
+    }
+    .month-pills { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+    .month-pill {
+      font-family: 'Calibri', sans-serif; font-size: 0.78rem; font-weight: 500;
+      padding: 5px 13px; border-radius: 20px; border: 1.5px solid var(--border);
+      background: var(--bg); color: var(--text-muted); cursor: pointer;
+      transition: all 0.18s; white-space: nowrap;
+    }
+    .month-pill:hover { border-color: var(--accent2); color: var(--accent2); background: var(--accent-light); }
+    .month-pill.active { background: var(--accent2); border-color: var(--accent2); color: #fff; font-weight: 600; }
+    .month-pill.all { border-color: var(--accent); }
+    .month-pill.all.active { background: var(--accent); border-color: var(--accent); }
+    .month-context { font-size: 0.76rem; color: var(--text-muted); white-space: nowrap; }
+    .month-context strong { color: var(--accent); }
+
+    @media (max-width: 700px) {
+      .form-grid, .modal-form-grid, .charts-grid, .stat-cards { grid-template-columns: 1fr; }
+      .charts-grid .wide { grid-column: 1; }
+      header { padding: 0 20px; }
+      nav { padding: 0 16px; }
+      main { padding: 0 16px 60px; }
+    }
+
+    /* ── Results section ── */
+    .results-controls {
+      display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 16px;
+    }
+    .results-controls .search-box { flex: 1; min-width: 200px; }
+    .res-month-bar {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 12px 18px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      box-shadow: var(--shadow);
+    }
+    .res-month-bar .month-filter-label { flex-shrink: 0; }
+    .res-patient-block {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      box-shadow: var(--shadow); margin-bottom: 18px; overflow: hidden;
+    }
+    .res-patient-header {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+      padding: 16px 22px; cursor: pointer; user-select: none;
+      border-bottom: 1px solid transparent; transition: background 0.15s;
+    }
+    .res-patient-header:hover { background: #f7f9fc; }
+    .res-patient-header.open { border-bottom-color: var(--border); background: #f7f9fc; }
+    .res-patient-left { display: flex; align-items: center; gap: 14px; }
+    .res-avatar {
+      width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center;
+      justify-content: center; font-family: 'Calibri', Calibri, sans-serif; font-size: 1rem;
+      color: #fff; flex-shrink: 0;
+    }
+    .res-avatar.male   { background: linear-gradient(135deg, var(--accent2), #1a4d7c); }
+    .res-avatar.female { background: linear-gradient(135deg, #c06090, #8a2060); }
+    .res-avatar.na     { background: linear-gradient(135deg, #999, #666); }
+    .res-name { font-family: 'Calibri', Calibri, sans-serif; font-size: 1rem; color: var(--text); }
+    .res-meta { font-size: 0.76rem; color: var(--text-muted); margin-top: 2px; }
+    .res-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .res-status-badge {
+      font-size: 0.75rem; font-weight: 600; padding: 4px 12px; border-radius: 20px;
+    }
+    .res-status-badge.normo { background: var(--green-bg); color: var(--green); }
+    .res-status-badge.sobre { background: var(--red-bg); color: var(--red); }
+    .res-status-badge.na    { background: #f0f0f0; color: #888; }
+    .res-status-badge.sem   { background: #fff4e0; color: #a0620a; }
+    .res-chevron {
+      width: 22px; height: 22px; color: var(--text-muted); transition: transform 0.2s; flex-shrink: 0;
+    }
+    .res-chevron.open { transform: rotate(180deg); }
+    .res-body { display: none; padding: 0 22px 20px; }
+    .res-body.open { display: block; animation: fadeUp 0.2s ease; }
+    .res-no-data { padding: 16px 0; color: var(--text-muted); font-size: 0.85rem; font-style: italic; }
+    .res-table {
+      width: 100%; border-collapse: collapse; font-size: 0.83rem; margin-top: 10px;
+    }
+    .res-table th {
+      background: var(--bg); padding: 8px 12px; text-align: left; font-size: 0.71rem;
+      font-weight: 600; color: var(--text-muted); letter-spacing: 0.05em; text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+    }
+    .res-table td { padding: 9px 12px; border-bottom: 1px solid #eef1f5; vertical-align: middle; }
+    .res-table tr:last-child td { border-bottom: none; }
+    .res-table tr:hover td { background: #f7f9fc; }
+    .res-table .val-green { color: var(--green); font-weight: 600; }
+    .res-table .val-red   { color: var(--red);   font-weight: 600; }
+    .res-table .latest-row td { background: #f0f7ff; }
+    .res-table .latest-row td:first-child { border-left: 3px solid var(--accent2); }
+    .res-count-badge { background: var(--accent-light); color: var(--accent); border: 1px solid #b3d6f5; border-radius: 20px; padding: 4px 12px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
+    .res-pace-badge { background: #f0f0f0; color: #777; border: 1px solid #ddd; border-radius: 20px; padding: 4px 12px; font-size: 0.75rem; font-weight: 600; }
+    .res-empty-section { text-align:center; padding: 50px 20px; color: var(--text-muted); }
+    .res-empty-section svg { width:48px; height:48px; opacity:0.25; margin-bottom:14px; }
+
+    /* ── Flat results table ── */
+    .flat-table-wrap { overflow-x: auto; border-radius: var(--radius); box-shadow: var(--shadow); }
+    .flat-table {
+      width: 100%; border-collapse: collapse; font-size: 0.83rem;
+      background: var(--surface); border-radius: var(--radius); overflow: hidden;
+    }
+    .flat-table thead th {
+      background: linear-gradient(135deg, var(--accent) 0%, #1e5a9a 100%);
+      color: #fff; padding: 12px 14px; text-align: left;
+      font-size: 0.74rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .flat-table tbody tr { border-bottom: 1px solid #eef1f5; transition: background 0.12s; }
+    .flat-table tbody tr:hover td { background: #f4f8ff; }
+    .flat-table tbody tr:last-child { border-bottom: none; }
+    .flat-table td { padding: 9px 14px; vertical-align: middle; }
+    .flat-patient-first .flat-name-cell,
+    .flat-patient-first .flat-info-cell { border-top: 2px solid var(--border); }
+    .flat-name-cell {
+      min-width: 220px; max-width: 280px; vertical-align: middle !important;
+      border-right: 1px solid var(--border);
+    }
+    .flat-info-cell {
+      min-width: 130px; vertical-align: middle !important;
+      border-right: 1px solid var(--border); white-space: nowrap;
+    }
+    .flat-name { font-family: 'Calibri', Calibri, sans-serif; font-size: 0.95rem; color: var(--text); }
+    .flat-meta { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; line-height: 1.4; }
+    .flat-table .val-green { color: var(--green); font-weight: 600; }
+    .flat-table .val-red   { color: var(--red);   font-weight: 600; }
+
+    /* ── Reports section ── */
+    .reports-header-bar {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;
+      margin-bottom: 22px;
+    }
+    .reports-header-bar h2 { font-family: 'Calibri', Calibri, sans-serif; font-size: 1.3rem; color: var(--text); font-weight: 400; }
+    .reports-controls {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 18px 22px; margin-bottom: 20px; box-shadow: var(--shadow);
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    }
+    .reports-controls .month-filter-label { white-space: nowrap; }
+    .btn-download {
+      font-family: 'Calibri', sans-serif; font-size: 0.88rem; font-weight: 600;
+      padding: 10px 22px; border-radius: 8px; border: none; cursor: pointer;
+      background: var(--green); color: #fff; display: flex; align-items: center; gap: 8px;
+      transition: all 0.2s; box-shadow: 0 3px 10px rgba(42,122,90,0.25); white-space: nowrap;
+    }
+    .btn-download:hover { background: #22694c; box-shadow: 0 4px 16px rgba(42,122,90,0.35); transform: translateY(-1px); }
+    .btn-download svg { width: 15px; height: 15px; stroke: #fff; fill: none; stroke-width: 2.2; flex-shrink: 0; }
+    .report-preview-label {
+      font-size: 0.78rem; font-weight: 600; color: var(--text-muted);
+      letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .report-preview-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .report-summary-bar {
+      display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 16px;
+    }
+    .report-summary-item {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 18px; display: flex; align-items: center; gap: 10px; flex: 1; min-width: 130px;
+    }
+    .report-summary-item .rs-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .report-summary-item .rs-icon svg { width: 16px; height: 16px; stroke: #fff; fill: none; stroke-width: 2; }
+    .report-summary-item .rs-num { font-family: 'Calibri', Calibri, sans-serif; font-size: 1.4rem; color: var(--text); line-height: 1; }
+    .report-summary-item .rs-lbl { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+
+    /* ── Edit evaluation modal ── */
+    .edit-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(10,20,40,0.55); z-index: 300; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(3px); }
+    .edit-modal-overlay.open { display: flex; animation: fadeIn 0.2s ease; }
+    .edit-modal { background: var(--surface); border-radius: var(--radius); width: 100%; max-width: 520px; box-shadow: 0 20px 60px rgba(10,20,40,0.3); animation: slideUp 0.28s cubic-bezier(.34,1.46,.64,1); }
+    .edit-modal-header { background: linear-gradient(135deg, #1a7a5a 0%, #2aaa7a 100%); padding: 18px 22px; display: flex; align-items: center; justify-content: space-between; border-radius: var(--radius) var(--radius) 0 0; }
+    .edit-modal-header-left { display: flex; align-items: center; gap: 12px; }
+    .edit-modal-header-icon { width: 36px; height: 36px; background: rgba(255,255,255,0.15); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+    .edit-modal-header-icon svg { width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 2; }
+    .edit-modal-title { font-family: 'Calibri', Calibri, sans-serif; font-size: 1rem; color: #fff; font-weight: 400; }
+    .edit-modal-sub { font-size: 0.74rem; color: rgba(255,255,255,0.65); margin-top: 2px; }
+    .edit-modal-body { padding: 22px; }
+    .btn-edit-row { width: 28px; height: 28px; background: rgba(42,170,122,0.12); border: 1px solid rgba(42,170,122,0.3); color: #1a7a5a; border-radius: 6px; cursor: pointer; font-size: 0.82rem; display: inline-flex; align-items: center; justify-content: center; transition: all 0.18s; }
+    .btn-edit-row:hover { background: #edf7f3; border-color: var(--green); }
+    .btn-edit-row svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2.2; }
+
+    /* ── Priorities section ── */
+    .priorities-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .priority-col {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .priority-col-header {
+      padding: 12px 16px;
+      font-family: 'Calibri', Calibri, sans-serif;
+      font-size: 0.95rem;
+      font-weight: 400;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .priority-col-header.manha  { background: linear-gradient(135deg, #1a6aaa, #2d7dd2); }
+    .priority-col-header.tarde  { background: linear-gradient(135deg, #b86a00, #d4890a); }
+    .priority-col-header.noite  { background: linear-gradient(135deg, #3a2a6a, #5a4a9a); }
+    .priority-col-header .pch-sub { font-size: 0.68rem; opacity: 0.75; font-family: 'Calibri', sans-serif; margin-top: 2px; }
+    .priority-row-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 8px 14px 4px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+    }
+    .priority-list { padding: 8px; }
+    .priority-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      margin-bottom: 6px;
+      cursor: pointer;
+      transition: box-shadow 0.18s, transform 0.18s, border-color 0.18s;
+      position: relative;
+    }
+    .priority-card:last-child { margin-bottom: 0; }
+    .priority-card:hover { box-shadow: 0 3px 14px rgba(26,77,124,0.13); transform: translateY(-1px); border-color: var(--accent2); }
+    .priority-rank {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--accent-light); color: var(--accent);
+      font-size: 0.72rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .priority-rank.rank-1 { background: #fff4d0; color: #a06000; }
+    .priority-rank.rank-2 { background: #f0f0f0; color: #666; }
+    .priority-rank.rank-3 { background: #fdeede; color: #a04020; }
+    .priority-info { flex: 1; min-width: 0; }
+    .priority-name { font-size: 0.84rem; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .priority-days { font-size: 0.7rem; color: var(--text-muted); margin-top: 1px; }
+    .priority-days.urgent { color: var(--red); font-weight: 600; }
+    .priority-days.warning { color: var(--orange); font-weight: 600; }
+    .priority-badge {
+      font-size: 0.65rem; font-weight: 700; padding: 2px 7px;
+      border-radius: 20px; flex-shrink: 0; white-space: nowrap;
+    }
+    .priority-badge.late-high { background: var(--red-bg); color: var(--red); }
+    .priority-badge.late-med  { background: #fff4e0; color: #a0620a; }
+    .priority-badge.late-low  { background: var(--green-bg); color: var(--green); }
+    .priority-empty { padding: 16px 10px; text-align: center; color: var(--text-muted); font-size: 0.8rem; font-style: italic; }
+    @media (max-width: 700px) {
+      .priorities-grid { grid-template-columns: 1fr; }
+    }
+    @media (min-width: 701px) and (max-width: 900px) {
+      .priorities-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* ── Edit Patient Modal ── */
+    .edit-patient-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(10,20,40,0.55); z-index: 300; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(3px); }
+    .edit-patient-modal-overlay.open { display: flex; animation: fadeIn 0.2s ease; }
+    .edit-patient-modal { background: var(--surface); border-radius: var(--radius); width: 100%; max-width: 460px; box-shadow: 0 20px 60px rgba(10,20,40,0.3); animation: slideUp 0.28s cubic-bezier(.34,1.46,.64,1); }
+    .edit-patient-header { background: linear-gradient(135deg, #1a4d7c 0%, #2d7dd2 100%); padding: 18px 22px; display: flex; align-items: center; justify-content: space-between; border-radius: var(--radius) var(--radius) 0 0; }
+    .edit-patient-header-left { display: flex; align-items: center; gap: 12px; }
+    .edit-patient-header-icon { width: 36px; height: 36px; background: rgba(255,255,255,0.15); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+    .edit-patient-header-icon svg { width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 2; }
+    .edit-patient-title { font-family: 'Calibri', Calibri, sans-serif; font-size: 1rem; color: #fff; font-weight: 400; }
+    .edit-patient-sub { font-size: 0.74rem; color: rgba(255,255,255,0.65); margin-top: 2px; }
+    .edit-patient-body { padding: 22px; }
+
+    /* ── Special eval type badges in history ── */
+    .eval-type-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 0.68rem; font-weight: 600; padding: 2px 8px;
+      border-radius: 12px; white-space: nowrap;
+    }
+    .eval-type-invalid { background: #fff4e0; color: #a0620a; border: 1px solid #f5d89a; }
+    .eval-type-internado { background: #e8f0ff; color: #2952a3; border: 1px solid #b3c8f5; }
+
+    /* DB status indicator in header */
+    .db-status { display: flex; align-items: center; gap: 7px; font-size: 0.75rem; }
+    .db-dot { width: 8px; height: 8px; border-radius: 50%; background: #aaa; flex-shrink: 0; transition: background 0.3s; }
+    .db-dot.connected { background: #4ade80; }
+    .db-dot.error { background: var(--red); }
+
+    /* ── Clinic Selector ── */
+    .clinic-selector-wrap { position: relative; }
+    .clinic-btn {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 20px; padding: 6px 14px; cursor: pointer;
+      font-family: 'Calibri', sans-serif; font-size: 0.78rem; color: #fff;
+      letter-spacing: 0.04em; transition: background 0.2s; white-space: nowrap;
+      outline: none;
+    }
+    .clinic-btn:hover { background: rgba(255,255,255,0.22); }
+    .clinic-btn .clinic-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+    .clinic-btn .clinic-dot.funchal { background: #4ade80; }
+    .clinic-btn .clinic-dot.machico { background: #60b4ff; }
+    .clinic-btn .clinic-arrow { font-size: 0.6rem; opacity: 0.7; margin-left: 2px; }
+    .clinic-dropdown {
+      display: none; position: absolute; top: calc(100% + 8px); right: 0;
+      background: #fff; border-radius: 10px; min-width: 200px;
+      box-shadow: 0 8px 32px rgba(10,20,40,0.22); border: 1px solid var(--border);
+      overflow: hidden; z-index: 200;
+    }
+    .clinic-dropdown.open { display: block; animation: fadeUp 0.18s ease; }
+    .clinic-dropdown-header {
+      padding: 10px 14px; font-size: 0.68rem; font-weight: 700;
+      color: var(--text-muted); letter-spacing: 0.08em; text-transform: uppercase;
+      border-bottom: 1px solid var(--border); background: var(--bg);
+    }
+    .clinic-option {
+      display: flex; align-items: center; gap: 10px; padding: 11px 14px;
+      cursor: pointer; font-family: 'Calibri', sans-serif; font-size: 0.88rem;
+      color: var(--text); transition: background 0.15s; border: none; background: none;
+      width: 100%; text-align: left;
+    }
+    .clinic-option:hover { background: var(--accent-light); }
+    .clinic-option.active { background: var(--accent-light); font-weight: 600; color: var(--accent); }
+    .clinic-option .clinic-opt-dot {
+      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    }
+    .clinic-option .clinic-opt-dot.funchal { background: #4ade80; }
+    .clinic-option .clinic-opt-dot.machico { background: #60b4ff; }
+    .clinic-option .clinic-opt-info { font-size: 0.72rem; color: var(--text-muted); margin-top: 1px; }
+
+    /* Clinic change overlay */
+    #clinic-loading {
+      display: none; position: fixed; inset: 0; background: rgba(26,77,124,0.55);
+      z-index: 600; align-items: center; justify-content: center; flex-direction: column; gap: 16px;
+      backdrop-filter: blur(4px);
+    }
+    #clinic-loading .spin { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    #clinic-loading p { font-size: 0.92rem; color: #fff; }
+    /* Loading overlay */
+    #app-loading { position: fixed; inset: 0; background: var(--bg); z-index: 500; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+    #app-loading .spin { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent2); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #app-loading p { font-size: 0.9rem; color: var(--text-muted); }
+
+    /* ── Names tooltip (hover em gráficos e cartões) ── */
+    #names-tooltip {
+      position: fixed; z-index: 700; pointer-events: none; opacity: 0;
+      background: #fff; border: 1px solid var(--border); border-radius: 10px;
+      box-shadow: 0 10px 34px rgba(10,20,40,0.22); padding: 12px 14px;
+      max-width: min(640px, 92vw); font-size: 0.8rem; color: var(--text);
+      transition: opacity 0.12s;
+    }
+    #names-tooltip.show { opacity: 1; }
+    .nt-head { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.86rem; margin-bottom: 2px; }
+    .nt-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+    .nt-count { margin-left: auto; background: var(--accent-light); color: var(--accent); border-radius: 20px; padding: 1px 9px; font-size: 0.72rem; }
+    .nt-sub { font-size: 0.72rem; color: var(--text-muted); margin-bottom: 6px; }
+    .nt-list { list-style: none; margin-top: 8px; column-gap: 22px; }
+    .nt-list li { padding: 2px 0; break-inside: avoid; white-space: nowrap; }
+    .nt-list li .nt-info { color: var(--text-muted); font-size: 0.72rem; margin-left: 4px; }
+    .nt-list li .nt-info.warn { color: var(--orange); font-weight: 600; }
+    .nt-list li .nt-info.bad  { color: var(--red); font-weight: 600; }
+    .nt-empty, .nt-more { color: var(--text-muted); font-style: italic; margin-top: 6px; font-size: 0.75rem; }
+    .stat-card[data-tip] { cursor: help; }
+
+    /* ══ Novos componentes ══ */
+    #toast.toast-error { background: var(--red); }
+    .muted { color: #bbb; }
+    .list-controls { flex-wrap: wrap; }
+    .list-controls .select-wrapper select { padding: 9px 32px 9px 12px; font-size: 0.85rem; background: var(--surface); }
+    .pc-last { font-size: 0.76rem; color: var(--text-muted); margin-top: 6px; }
+    .pc-last.warn { color: var(--orange); font-weight: 600; }
+    .pc-last.bad  { color: var(--red); font-weight: 600; }
+    .link-name { cursor: pointer; color: var(--accent); }
+    .link-name:hover { text-decoration: underline; }
+
+    /* Cobertura */
+    .cov-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+    .cov-item { cursor: pointer; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); transition: border-color .15s, box-shadow .15s; }
+    .cov-item:hover { border-color: var(--accent2); box-shadow: 0 3px 12px rgba(26,77,124,0.12); }
+    .cov-label { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); }
+    .cov-pct { font-size: 1.45rem; line-height: 1.1; margin-top: 4px; }
+    .cov-pct.good { color: var(--green); } .cov-pct.mid { color: var(--orange); } .cov-pct.low { color: var(--red); }
+    .cov-bar { height: 8px; border-radius: 6px; background: #e2e8f0; overflow: hidden; display: flex; margin: 8px 0 6px; }
+    .cov-bar .done { background: #2a7a5a; } .cov-bar .att { background: #e0a030; }
+    .cov-num { font-size: 0.72rem; color: var(--text-muted); }
+    @media (max-width: 900px) { .cov-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 500px) { .cov-grid { grid-template-columns: repeat(2, 1fr); } }
+
+    /* Registo rápido */
+    .quick-controls { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 18px; }
+    .quick-controls .form-group { min-width: 190px; }
+    .q-check { display: flex; align-items: center; gap: 8px; font-size: 0.86rem; color: var(--text); padding: 11px 0; cursor: pointer; }
+    .q-check input { width: 16px; height: 16px; accent-color: var(--accent2); }
+    .quick-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    .quick-table th { background: var(--bg); padding: 8px; text-align: left; font-size: 0.7rem; font-weight: 600; color: var(--text-muted); letter-spacing: 0.05em; text-transform: uppercase; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .quick-table td { padding: 6px 8px; border-bottom: 1px solid #eef1f5; vertical-align: middle; }
+    .quick-table input[type="number"] { width: 82px; padding: 7px 8px; font-size: 0.88rem; }
+    .quick-table input[type="number"]:disabled { opacity: 0.35; }
+    .quick-table select { padding: 7px 8px; font-size: 0.8rem; }
+    .quick-table tr.filled td { background: #f2faf6; }
+    .quick-table tr.special td { background: #fffaf0; }
+    .quick-table tr.has-warn td { background: #fff7ea; }
+    .quick-table tr.has-error td { background: #fdf0f0; }
+    .q-name { font-weight: 600; }
+    .q-meta { font-size: 0.72rem; color: var(--text-muted); }
+    .q-delta { font-size: 0.76rem; min-width: 150px; }
+    .q-delta .warn { color: var(--orange); font-weight: 600; }
+    .q-delta .bad  { color: var(--red); font-weight: 600; }
+    .q-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 18px; flex-wrap: wrap; gap: 12px; }
+    .q-count { font-size: 0.86rem; color: var(--text-muted); }
+    .q-count strong { color: var(--accent); }
+    .badge-same { font-size: 0.64rem; font-weight: 600; background: #fff4e0; color: #a0620a; border-radius: 10px; padding: 1px 7px; margin-left: 6px; white-space: nowrap; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
+    /* Modal BCM */
+    .field-hint { font-size: 0.72rem; color: var(--text-muted); }
+    .field-hint.warn { color: var(--orange); font-weight: 600; }
+    .bcm-summary { background: #f7f5fc; border: 1px solid #e2d9f3; border-radius: 10px; padding: 10px 14px; font-size: 0.84rem; margin-bottom: 16px; }
+    .evo-wrap { height: 170px; }
+
+    /* Drill-down */
+    .drill-row { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-bottom: 1px solid #eef1f5; }
+    .drill-row:last-child { border-bottom: none; }
+    .drill-row .dn { flex: 1; min-width: 0; }
+    .drill-row .dn-name { font-weight: 600; font-size: 0.88rem; }
+    .drill-row .dn-info { font-size: 0.74rem; color: var(--text-muted); }
+    .drill-row .dn-info.warn { color: var(--orange); font-weight: 600; }
+    .drill-row .dn-info.bad { color: var(--red); font-weight: 600; }
+    .drill-row .btn-action { flex: 0 0 auto; }
+
+    /* Prioridades */
+    .prio-mode { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; }
+    .priority-list.scroll { max-height: 440px; overflow-y: auto; }
+    .priority-edit { width: 26px; height: 26px; flex-shrink: 0; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .priority-edit:hover { color: var(--accent2); border-color: var(--accent2); }
+  </style>
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div id="app-loading" style="display:none">
+  <div class="spin"></div>
+  <p>A sincronizar dados...</p>
+</div>
+
+<!-- Clinic change overlay -->
+<div id="clinic-loading" style="display:none">
+  <div class="spin"></div>
+  <p id="clinic-loading-msg">A mudar de clínica...</p>
+</div>
+
+<header>
+  <div class="header-brand">
+    <div class="header-logo">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+    </div>
+    <div>
+      <div class="header-title">Avaliação BCM</div>
+      <div class="header-subtitle">Sistema de Gestão de Doentes</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:14px;">
+    <div class="db-status"><div class="db-dot" id="db-dot"></div><span id="db-status-txt" style="color:rgba(255,255,255,0.7)">Offline</span></div>
+    <div class="clinic-selector-wrap" id="clinic-selector-wrap">
+      <button class="clinic-btn" id="clinic-btn" onclick="toggleClinicDropdown()">
+        <span class="clinic-dot funchal" id="clinic-dot"></span>
+        <span id="clinic-btn-label">Nephrocare Funchal</span>
+        <span class="clinic-arrow">▼</span>
+      </button>
+      <div class="clinic-dropdown" id="clinic-dropdown">
+        <div class="clinic-dropdown-header">Selecionar Clínica</div>
+        <button class="clinic-option active" id="opt-funchal" onclick="selectClinic('funchal')">
+          <span class="clinic-opt-dot funchal"></span>
+          <div><div>Nephrocare Funchal</div><div class="clinic-opt-info">Base de dados independente</div></div>
+        </button>
+        <button class="clinic-option" id="opt-machico" onclick="selectClinic('machico')">
+          <span class="clinic-opt-dot machico"></span>
+          <div><div>Nephrocare Machico</div><div class="clinic-opt-info">Base de dados independente</div></div>
+        </button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<nav>
+  <button class="tab-btn active" data-tab="intro" onclick="showTab('intro', this)">Início</button>
+  <button class="tab-btn" data-tab="form" onclick="showTab('form', this)">Registar Doente</button>
+  <button class="tab-btn" data-tab="quick" onclick="showTab('quick', this)">Registo Rápido</button>
+  <button class="tab-btn" data-tab="list" onclick="showTab('list', this)">Listagem</button>
+  <button class="tab-btn" data-tab="results" onclick="showTab('results', this)">Resultados Individuais</button>
+  <button class="tab-btn" data-tab="priorities" onclick="showTab('priorities', this)">Prioridades de Avaliação</button>
+  <button class="tab-btn" data-tab="reports" onclick="showTab('reports', this)">Relatórios</button>
+</nav>
+
+<main>
+
+  <!-- ══ INÍCIO ══ -->
+  <div id="intro" class="section active">
+    <div class="intro-hero">
+      <h1>Bem-vindo ao Avaliação BCM</h1>
+      <p>Plataforma de gestão e registo de doentes para avaliação de Body Composition Monitor. Passe o rato sobre os gráficos para ver os nomes dos doentes; clique para abrir a lista e avaliar.</p>
+    </div>
+
+    <div class="month-filter-bar">
+      <span class="month-filter-label">📅 Filtrar por mês:</span>
+      <div class="month-pills" id="month-pills"></div>
+      <span class="month-context" id="month-context"></span>
+    </div>
+
+    <div class="stat-cards">
+      <div class="stat-card">
+        <div class="stat-icon blue"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+        <div><div class="stat-num" id="stat-total">0</div><div class="stat-lbl">Doentes Total</div></div>
+      </div>
+      <div class="stat-card" data-tip="normo">
+        <div class="stat-icon green"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <div><div class="stat-num" id="stat-normo">0</div><div class="stat-lbl">Normohidratados</div></div>
+      </div>
+      <div class="stat-card" data-tip="sobre">
+        <div class="stat-icon red"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+        <div><div class="stat-num" id="stat-sobre">0</div><div class="stat-lbl">Sobrehidratados</div></div>
+      </div>
+      <div class="stat-card" data-tip="na">
+        <div class="stat-icon orange"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+        <div><div class="stat-num" id="stat-na">0</div><div class="stat-lbl">Não Avaliáveis</div></div>
+      </div>
+    </div>
+
+    <div class="chart-card" style="margin-bottom:24px">
+      <div class="chart-title" id="cov-title">Cobertura de avaliação</div>
+      <div class="chart-subtitle" id="cov-sub"></div>
+      <div class="cov-grid" id="cov-grid"></div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">Estado de Hidratação</div>
+        <div class="chart-subtitle">Normohidratados vs Sobrehidratados (doentes avaliáveis)</div>
+        <div class="chart-wrap" style="height:220px"><canvas id="chartDonut"></canvas></div>
+        <div class="legend" id="legendDonut"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Doentes Avaliados por Turno</div>
+        <div class="chart-subtitle">Doentes com avaliação BCM válida (com OH) no período</div>
+        <div class="chart-wrap" style="height:220px"><canvas id="chartTurno"></canvas></div>
+      </div>
+      <div class="chart-card wide">
+        <div class="chart-title">Hidratação por Turno</div>
+        <div class="chart-subtitle">Normohidratados e Sobrehidratados distribuídos por turno</div>
+        <div class="chart-wrap" style="height:240px"><canvas id="chartTurnoStack"></canvas></div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#2a7a5a"></div>Normohidratados</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#b83232"></div>Sobrehidratados</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#ddd"></div>Não avaliados / Sem dados</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ REGISTAR DOENTE ══ -->
+  <div id="form" class="section">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-header-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+        <div><h2>Dados do Doente</h2><p>Preencha todos os campos obrigatórios</p></div>
+      </div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>Nome completo <span class="req">*</span></label>
+            <input type="text" id="f-nome" placeholder="Introduza o nome do doente" />
+          </div>
+          <div class="form-group">
+            <label>Género <span class="req">*</span></label>
+            <div class="radio-group">
+              <label class="radio-option"><input type="radio" name="genero" value="Masculino" /><span class="dot"></span>Masculino</label>
+              <label class="radio-option"><input type="radio" name="genero" value="Feminino" /><span class="dot"></span>Feminino</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Pacemaker / CDI <span class="req">*</span></label>
+            <div class="toggle-group">
+              <label class="toggle-option yes"><input type="radio" name="pacemaker" value="Sim" />✓ Sim</label>
+              <label class="toggle-option no"><input type="radio" name="pacemaker" value="Não" />✗ Não</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Turno <span class="req">*</span></label>
+            <div class="select-wrapper"><select id="f-turno"></select></div>
+          </div>
+          <div class="form-group">
+            <label>Médico Responsável <span class="req">*</span></label>
+            <div class="select-wrapper"><select id="f-medico"></select></div>
+          </div>
+        </div>
+        <hr class="divider" />
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="resetForm()">Limpar</button>
+          <button class="btn btn-primary" onclick="savePatient()">Guardar Registo</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ REGISTO RÁPIDO ══ -->
+  <div id="quick" class="section">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-header-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+        <div><h2>Registo Rápido por Turno</h2><p>Introduza as avaliações de um turno inteiro e guarde tudo de uma vez. Enter passa ao doente seguinte.</p></div>
+      </div>
+      <div class="card-body">
+        <div class="quick-controls">
+          <div class="form-group">
+            <label>Turno <span class="req">*</span></label>
+            <div class="select-wrapper"><select id="q-turno" onchange="renderQuick()"></select></div>
+          </div>
+          <div class="form-group">
+            <label>Data da avaliação <span class="req">*</span></label>
+            <input type="date" id="q-data" onchange="renderQuick()" />
+          </div>
+          <label class="q-check" style="text-transform:none;letter-spacing:0;font-weight:400;">
+            <input type="checkbox" id="q-only-missing" onchange="renderQuick()" />
+            Mostrar só doentes sem avaliação válida nesse mês
+          </label>
+        </div>
+        <div id="q-table-wrap"></div>
+        <div class="q-footer">
+          <div class="q-count" id="q-count"></div>
+          <div style="display:flex;gap:12px;">
+            <button class="btn btn-secondary" onclick="clearQuick()">Limpar turno</button>
+            <button class="btn btn-primary" id="q-save-btn" onclick="saveQuick()">Guardar todas</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ LISTAGEM ══ -->
+  <div id="list" class="section">
+    <div class="list-controls">
+      <input type="text" class="search-box" id="search-box" placeholder="🔍  Pesquisar por nome, médico ou turno..." oninput="renderList()" />
+      <div class="select-wrapper"><select id="lf-turno" onchange="renderList()"></select></div>
+      <div class="select-wrapper"><select id="lf-medico" onchange="renderList()"></select></div>
+      <div class="select-wrapper"><select id="lf-estado" onchange="renderList()">
+        <option value="">Todos os estados</option>
+        <option value="normo">Normohidratados</option>
+        <option value="sobre">Sobrehidratados</option>
+        <option value="sem">Sem avaliação válida</option>
+        <option value="na">Não avaliáveis (PCM/CDI)</option>
+      </select></div>
+      <div class="select-wrapper"><select id="lf-atraso" onchange="renderList()">
+        <option value="">Qualquer atraso</option>
+        <option value="30">Última há ≥ 30 dias</option>
+        <option value="60">Última há ≥ 60 dias</option>
+        <option value="never">Nunca avaliados</option>
+      </select></div>
+      <div class="count-badge" id="count-badge">0 doentes</div>
+    </div>
+    <div class="patient-grid" id="patient-grid"></div>
+  </div>
+
+  <!-- ══ RESULTADOS INDIVIDUAIS ══ -->
+  <div id="results" class="section">
+    <div class="results-controls">
+      <input type="text" class="search-box" id="res-search" placeholder="🔍  Pesquisar por nome, médico ou turno..." oninput="renderResults()" />
+      <div class="count-badge" id="res-count-badge">0 doentes</div>
+    </div>
+    <div class="res-month-bar">
+      <span class="month-filter-label">📅 Filtrar por mês:</span>
+      <div class="month-pills" id="res-month-pills"></div>
+      <span class="month-context" id="res-month-context"></span>
+    </div>
+    <p style="font-size:0.78rem;color:var(--text-muted);margin:-8px 0 14px 2px;">Clique no nome de um doente para registar uma avaliação e ver a evolução do OH.</p>
+    <div id="results-list"></div>
+  </div>
+
+  <!-- ══ PRIORIDADES ══ -->
+  <div id="priorities" class="section">
+    <div style="margin-bottom:14px;">
+      <h2 style="font-size:1.3rem;color:var(--text);font-weight:400;margin-bottom:4px;">Prioridades de Avaliação</h2>
+      <p style="font-size:0.82rem;color:var(--text-muted);">Ordenados por dias desde o último registo (inválidos e internamentos contam). Clique num doente para o avaliar.</p>
+    </div>
+    <div class="prio-mode" id="prio-mode"></div>
+    <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;padding-left:2px;">⬡ Dias Pares</div>
+    <div class="priorities-grid" id="priority-par"></div>
+    <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;padding-left:2px;">⬡ Dias Ímpares</div>
+    <div class="priorities-grid" id="priority-impar"></div>
+  </div>
+
+  <!-- ══ RELATÓRIOS ══ -->
+  <div id="reports" class="section">
+    <div class="reports-header-bar">
+      <div>
+        <h2>Relatórios de Avaliações BCM</h2>
+        <p style="font-size:0.82rem;color:var(--text-muted);margin-top:4px;">Exportar dados completos de todos os doentes em formato de tabela</p>
+      </div>
+    </div>
+    <div class="reports-controls">
+      <span class="month-filter-label">📅 Período:</span>
+      <div class="month-pills" id="rep-month-pills"></div>
+      <span class="month-context" id="rep-month-context"></span>
+      <button class="btn-download" onclick="downloadReport()">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Descarregar Relatório Excel
+      </button>
+    </div>
+    <div class="report-summary-bar" id="rep-summary-bar"></div>
+    <div class="report-preview-label">Pré-visualização do relatório</div>
+    <div class="flat-table-wrap" id="rep-preview-wrap"></div>
+  </div>
+
+</main>
+
+<!-- ══ EDIT PATIENT MODAL ══ -->
+<div class="edit-patient-modal-overlay" id="edit-patient-modal">
+  <div class="edit-patient-modal">
+    <div class="edit-patient-header">
+      <div class="edit-patient-header-left">
+        <div class="edit-patient-header-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+        <div>
+          <div class="edit-patient-title">Editar Dados do Doente</div>
+          <div class="edit-patient-sub" id="edit-patient-sub">—</div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeEditPatientModal()">✕</button>
+    </div>
+    <div class="edit-patient-body">
+      <input type="hidden" id="edit-patient-id" />
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Nome completo <span class="req">*</span></label>
+          <input type="text" id="ep-nome" placeholder="Nome do doente" />
+        </div>
+        <div class="form-group full">
+          <label>Género <span class="req">*</span></label>
+          <div class="radio-group">
+            <label class="radio-option"><input type="radio" name="ep-genero" value="Masculino" /><span class="dot"></span>Masculino</label>
+            <label class="radio-option"><input type="radio" name="ep-genero" value="Feminino" /><span class="dot"></span>Feminino</label>
+          </div>
+        </div>
+        <div class="form-group full">
+          <label>Pacemaker / CDI <span class="req">*</span></label>
+          <div class="toggle-group">
+            <label class="toggle-option yes"><input type="radio" name="ep-pacemaker" value="Sim" />✓ Sim</label>
+            <label class="toggle-option no"><input type="radio" name="ep-pacemaker" value="Não" />✗ Não</label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Turno <span class="req">*</span></label>
+          <div class="select-wrapper"><select id="ep-turno"></select></div>
+        </div>
+        <div class="form-group">
+          <label>Médico Responsável <span class="req">*</span></label>
+          <div class="select-wrapper"><select id="ep-medico"></select></div>
+        </div>
+      </div>
+      <div class="btn-row" style="margin-top:20px;">
+        <button class="btn btn-secondary" onclick="closeEditPatientModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveEditedPatient()">Guardar Alterações</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ EDIT EVALUATION MODAL ══ -->
+<div class="edit-modal-overlay" id="edit-eval-modal">
+  <div class="edit-modal">
+    <div class="edit-modal-header">
+      <div class="edit-modal-header-left">
+        <div class="edit-modal-header-icon"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div>
+        <div>
+          <div class="edit-modal-title">Editar Avaliação BCM</div>
+          <div class="edit-modal-sub" id="edit-modal-date-label">—</div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+    <div class="edit-modal-body">
+      <input type="hidden" id="edit-eval-id" />
+      <div class="modal-form-grid">
+        <div class="form-group full">
+          <label>Data da Avaliação <span class="req">*</span></label>
+          <input type="date" id="edit-bcm-data" />
+        </div>
+        <div class="form-group">
+          <label>Sobrehidratação relativa (OH) <span class="req">*</span></label>
+          <div class="input-unit"><input type="number" id="edit-bcm-oh" placeholder="0.0" step="0.1" /><span class="unit">%</span></div>
+          <span class="field-hint" id="edit-bcm-oh-hint"></span>
+        </div>
+        <div class="form-group">
+          <label>Vol. Distribuição Ureia</label>
+          <div class="input-unit"><input type="number" id="edit-bcm-vdu" placeholder="0.0" step="0.1" /><span class="unit">L</span></div>
+        </div>
+        <div class="form-group">
+          <label>Peso Seco</label>
+          <div class="input-unit"><input type="number" id="edit-bcm-pseco" placeholder="0.0" step="0.1" /><span class="unit">kg</span></div>
+        </div>
+        <div class="form-group">
+          <label>Peso Normohidratado</label>
+          <div class="input-unit"><input type="number" id="edit-bcm-pnormo" placeholder="0.0" step="0.1" /><span class="unit">kg</span></div>
+        </div>
+      </div>
+      <div class="btn-row" style="margin-top:20px;">
+        <button class="btn btn-secondary" onclick="closeEditModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveEditedBcm()" style="background:var(--green);box-shadow:0 3px 10px rgba(42,122,90,0.3);">Guardar Alterações</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DRILL-DOWN MODAL (lista fixada a partir dos gráficos) ══ -->
+<div class="modal-overlay" id="drill-modal" style="z-index:180">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header" style="background:linear-gradient(135deg, var(--accent) 0%, #2d7dd2 100%)">
+      <div class="modal-header-left">
+        <div class="modal-header-icon"><svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div>
+        <div>
+          <div class="modal-title" id="drill-title">—</div>
+          <div class="modal-patient" id="drill-sub">—</div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeDrill()">✕</button>
+    </div>
+    <div class="modal-body" id="drill-body"></div>
+  </div>
+</div>
+
+<!-- ══ BCM MODAL ══ -->
+<div class="modal-overlay" id="bcm-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <div class="modal-header-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+        <div>
+          <div class="modal-title">Avaliação BCM</div>
+          <div class="modal-patient" id="modal-patient-name">—</div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body-content"></div>
+  </div>
+</div>
+
+<div id="names-tooltip"></div>
+
+<div id="toast">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+  <span id="toast-msg">Guardado!</span>
+</div>
+
+<script>
+  // ══════════════════════════════════════════════════════
+  //  CONSTANTES E UTILITÁRIOS
+  // ══════════════════════════════════════════════════════
+  const TURNOS  = ['Par Manhã','Par Tarde','Par Noite','Ímpar Manhã','Ímpar Tarde','Ímpar Noite'];
+  const MEDICOS = ['Dr. Gil','Dr. Alves','Dr. Durães','Dr. Miguel','Dra. Carlota','Dra. Nicole','Dr. Nuno Rosa','Dr. Pedro Vieira'];
+  const MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const EVAL_FIELDS = ['oh','vdu','pseco','pnormo'];
+
+  // Intervalos de validação (ajuste aqui se a equipa preferir outros valores).
+  //  min/max     → fora disto o valor é recusado (provável erro de digitação)
+  //  warnMin/Max → fora disto pede confirmação
+  //  delta       → variação face à avaliação anterior que pede confirmação
+  const RANGES = {
+    oh:     { label: 'OH',                  unit: '%',  min: -60, max: 100, warnMin: -15, warnMax: 40,  delta: 10 },
+    vdu:    { label: 'VDU',                 unit: 'L',  min: 5,   max: 100, warnMin: 15,  warnMax: 60,  delta: 5 },
+    pseco:  { label: 'Peso seco',           unit: 'kg', min: 15,  max: 300, warnMin: 35,  warnMax: 150, delta: 5 },
+    pnormo: { label: 'Peso normohidratado', unit: 'kg', min: 15,  max: 300, warnMin: 35,  warnMax: 150, delta: 5 },
+  };
+
+  const $ = id => document.getElementById(id);
+
+  function escHtml(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+  function todayISO() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+  function formatDate(d) {
+    if (!d) return '—';
+    const [y, m, day] = d.split('-');
+    return `${day}/${m}/${y}`;
+  }
+  function monthLabel(mk) {
+    if (mk === 'all') return 'Todos os períodos';
+    const [y, m] = mk.split('-');
+    return `${MESES_PT[parseInt(m,10)-1]} ${y}`;
+  }
+  function normName(s) {
+    return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+  }
+  const byName = (a, b) => a.nome.localeCompare(b.nome, 'pt', { sensitivity: 'base' });
+  function parseNum(v) {
+    if (v === null || v === undefined || String(v).trim() === '') return null;
+    return parseFloat(String(v).replace(',', '.'));
+  }
+  function fmtOH(v) { return `${v} %`; }
+  function fmtNum(v, unit) { return v !== null && v !== undefined ? `${v} ${unit}` : '<span class="muted">—</span>'; }
+  function plural(n, s, p) { return `${n} ${n === 1 ? s : (p || s + 's')}`; }
+
+  // ── Regras clínicas ──
+  function ohThreshold(genero) { return genero === 'Feminino' ? 13 : 15; }
+  function hasOH(b) { return !!b && !b.evalType && b.oh !== null && b.oh !== undefined; }
+  function ohStatus(p, oh) { return oh <= ohThreshold(p.genero) ? 'normo' : 'sobre'; }
+  function recordsFor(p, mk) {
+    const all = p.bcm || [];
+    return mk === 'all' ? all : all.filter(b => b.data && b.data.startsWith(mk));
+  }
+  // Última avaliação COM OH (ignora inválidas/internados) → usada para o estado de hidratação
+  function latestValid(p, mk) { return recordsFor(p, mk).find(hasOH) || null; }
+  // Último registo de qualquer tipo → usado para o atraso
+  function latestAny(p, mk) { return recordsFor(p, mk)[0] || null; }
+  function hydrationStatusForMonth(p, mk) {
+    if (p.pacemaker === 'Sim') return 'na';
+    const r = latestValid(p, mk);
+    return r ? ohStatus(p, r.oh) : null;
+  }
+  function daysSinceLastEval(p) {
+    const last = (p.bcm || []).find(b => b.data);
+    if (!last) return Infinity;
+    const today = new Date(); today.setHours(0,0,0,0);
+    return Math.floor((today - new Date(last.data + 'T00:00:00')) / 86400000);
+  }
+  function daysClass(d) { return d === Infinity || d >= 60 ? 'bad' : d >= 30 ? 'warn' : ''; }
+
+  function validateEval(p, vals, excludeId) {
+    const errors = [], warnings = [];
+    EVAL_FIELDS.forEach(k => {
+      const v = vals[k], R = RANGES[k];
+      if (v === null) return;
+      if (isNaN(v)) { errors.push(`${R.label}: valor inválido.`); return; }
+      if (v < R.min || v > R.max) errors.push(`${R.label} = ${v} ${R.unit} está fora do intervalo possível (${R.min} a ${R.max} ${R.unit}).`);
+      else if (v < R.warnMin || v > R.warnMax) warnings.push(`${R.label} = ${v} ${R.unit} está fora do intervalo habitual (${R.warnMin} a ${R.warnMax} ${R.unit}).`);
+    });
+    const prev = (p.bcm || []).find(b => hasOH(b) && b.id !== excludeId);
+    if (prev) {
+      EVAL_FIELDS.forEach(k => {
+        const v = vals[k], pv = prev[k], R = RANGES[k];
+        if (v === null || isNaN(v) || pv === null || pv === undefined) return;
+        const d = +(v - pv).toFixed(1);
+        if (Math.abs(d) > R.delta) warnings.push(`${R.label} varia ${d > 0 ? '+' : ''}${d} ${R.unit} face a ${formatDate(prev.data)} (${pv} ${R.unit}).`);
+      });
+    }
+    return { errors, warnings };
+  }
+
+  function ohHint(p, ohStr, excludeId) {
+    const limit = ohThreshold(p.genero);
+    const prev = (p.bcm || []).find(b => hasOH(b) && b.id !== excludeId);
+    const v = parseNum(ohStr);
+    if (v === null || isNaN(v)) {
+      return { text: `Limite: ≤ ${limit} % (${p.genero || '—'})` + (prev ? ` · Anterior: ${fmtOH(prev.oh)} em ${formatDate(prev.data)}` : ''), warn: false };
+    }
+    let text = `${v <= limit ? '✓ Normohidratado' : '⚠ Sobrehidratado'} (limite ≤ ${limit} %)`;
+    let warn = v < RANGES.oh.warnMin || v > RANGES.oh.warnMax;
+    if (prev) {
+      const d = +(v - prev.oh).toFixed(1);
+      text += ` · Δ ${d > 0 ? '+' : ''}${d} vs ${formatDate(prev.data)}`;
+      if (Math.abs(d) > RANGES.oh.delta) warn = true;
+    }
+    return { text, warn };
+  }
+
+  function fillSelect(el, options, placeholder) {
+    const cur = el.value;
+    el.innerHTML = (placeholder !== undefined ? `<option value="">${placeholder}</option>` : '') +
+      options.map(o => `<option value="${escHtml(o)}">${escHtml(o)}</option>`).join('');
+    if (cur && options.includes(cur)) el.value = cur;
+  }
+
+  function showToast(msg, type) {
+    $('toast-msg').textContent = msg || 'Guardado!';
+    const t = $('toast');
+    t.classList.toggle('toast-error', type === 'error');
+    t.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => t.classList.remove('show'), type === 'error' ? 5000 : 2800);
+  }
+
+  function syncBodyScroll() {
+    document.body.style.overflow = document.querySelector('.modal-overlay.open, .edit-modal-overlay.open, .edit-patient-modal-overlay.open') ? 'hidden' : '';
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  CLÍNICA
+  // ══════════════════════════════════════════════════════
+  const CLINICS = {
+    funchal: { label: 'Nephrocare Funchal', dotClass: 'funchal', path: 'funchal' },
+    machico: { label: 'Nephrocare Machico', dotClass: 'machico', path: 'machico' },
+  };
+  let currentClinic = localStorage.getItem('bcm_clinic') || 'funchal';
+  if (!CLINICS[currentClinic]) currentClinic = 'funchal';
+  const clinicPath = () => CLINICS[currentClinic].path;
+
+  function toggleClinicDropdown() {
+    const dd = $('clinic-dropdown');
+    dd.classList.toggle('open');
+    if (dd.classList.contains('open')) {
+      setTimeout(() => document.addEventListener('click', closeClinicDropdownOutside, { once: true }), 10);
+    }
+  }
+  function closeClinicDropdownOutside(e) {
+    if (!$('clinic-selector-wrap').contains(e.target)) $('clinic-dropdown').classList.remove('open');
+  }
+  function selectClinic(key) {
+    $('clinic-dropdown').classList.remove('open');
+    if (key === currentClinic) return;
+    if (Object.keys(quickDraft).length && !confirm('Há registos rápidos por guardar. Mudar de clínica descarta-os. Continuar?')) return;
+    if (db) {
+      db.ref(clinicPath() + '/patients').off();
+      db.ref(clinicPath() + '/evaluations').off();
+    }
+    currentClinic = key;
+    localStorage.setItem('bcm_clinic', key);
+    updateClinicUI();
+    closeModal(); closeDrill();
+    $('clinic-loading-msg').textContent = `A carregar ${CLINICS[key].label}...`;
+    $('clinic-loading').style.display = 'flex';
+    patients = [];
+    quickDraft = {};
+    startListeners();
+  }
+  function updateClinicUI() {
+    const clinic = CLINICS[currentClinic];
+    $('clinic-dot').className = 'clinic-dot ' + clinic.dotClass;
+    $('clinic-btn-label').textContent = clinic.label;
+    document.querySelectorAll('.clinic-option').forEach(el => el.classList.remove('active'));
+    $('opt-' + currentClinic).classList.add('active');
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  FIREBASE
+  // ══════════════════════════════════════════════════════
+  let db = null;
+  let patients = [];
+  let currentPatientId = null;
+  let chartDonut = null, chartTurno = null, chartTurnoStack = null, chartEvo = null;
+
+  const FIREBASE_CONFIG = {
+    apiKey:            "AIzaSyB8IpkUTFZ7WBPt_kTk-2Dv5zDgtHnXWyk",
+    authDomain:        "bcm2-ae846.firebaseapp.com",
+    databaseURL:       "https://bcm2-ae846-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId:         "bcm2-ae846",
+    storageBucket:     "bcm2-ae846.firebasestorage.app",
+    messagingSenderId: "31128478536",
+    appId:             "1:31128478536:web:4cf467a52ec9ed08a1497d"
+  };
+
+  window.addEventListener('load', () => {
+    updateClinicUI();
+    initStaticSelects();
+    bindStatCardTips();
+    initFirebase(FIREBASE_CONFIG);
+  });
+
+  function initStaticSelects() {
+    fillSelect($('f-turno'), TURNOS, '— Selecionar turno —');
+    fillSelect($('f-medico'), MEDICOS, '— Selecionar médico —');
+    fillSelect($('ep-turno'), TURNOS, '— Selecionar turno —');
+    fillSelect($('ep-medico'), MEDICOS, '— Selecionar médico —');
+    fillSelect($('q-turno'), TURNOS, '— Selecionar turno —');
+    fillSelect($('lf-turno'), TURNOS, 'Todos os turnos');
+    fillSelect($('lf-medico'), MEDICOS, 'Todos os médicos');
+    $('q-data').value = todayISO();
+  }
+
+  function initFirebase(cfg) {
+    $('app-loading').style.display = 'flex';
+    try {
+      if (firebase.apps.length === 0) firebase.initializeApp(cfg);
+      db = firebase.database();
+      setDbStatus('connected', 'Ligado');
+      startListeners();
+    } catch (e) {
+      $('app-loading').style.display = 'none';
+      setDbStatus('error', 'Erro de ligação');
+      console.error('Firebase init error:', e);
+      alert('Erro ao ligar ao Firebase: ' + e.message);
+    }
+  }
+
+  function setDbStatus(state, label) {
+    $('db-dot').className = 'db-dot ' + state;
+    $('db-status-txt').textContent = label;
+  }
+
+  function startListeners() {
+    const pRef = db.ref(clinicPath() + '/patients');
+    const eRef = db.ref(clinicPath() + '/evaluations');
+    let pSnap = null, eSnap = null;
+    const onErr = err => { setDbStatus('error', 'Erro'); console.error(err); };
+    pRef.on('value', snap => { pSnap = snap; if (pSnap && eSnap) rebuildAndRender(pSnap, eSnap); }, onErr);
+    eRef.on('value', snap => { eSnap = snap; if (pSnap && eSnap) rebuildAndRender(pSnap, eSnap); }, onErr);
+  }
+
+  function rebuildAndRender(pSnap, eSnap) {
+    const evalsByPatient = {};
+    eSnap.forEach(child => {
+      const ev = child.val();
+      (evalsByPatient[ev.patientId] = evalsByPatient[ev.patientId] || []).push({
+        id: child.key,
+        data: ev.data || null,
+        oh: ev.oh !== undefined ? ev.oh : null,
+        vdu: ev.vdu !== undefined ? ev.vdu : null,
+        pseco: ev.psp !== undefined ? ev.psp : null,
+        pnormo: ev.pnh !== undefined ? ev.pnh : null,
+        evalType: ev.evalType || null,
+        criadoEm: ev.criadoEm || '',
+      });
+    });
+
+    patients = [];
+    pSnap.forEach(child => {
+      const p = child.val();
+      const evs = (evalsByPatient[child.key] || [])
+        .sort((a, b) => (b.data || '').localeCompare(a.data || '') || (b.criadoEm || '').localeCompare(a.criadoEm || ''));
+      patients.push({
+        id: child.key,
+        nome: p.nome || '',
+        genero: p.genero || '',
+        turno: p.turno || '',
+        pacemaker: p.pacemaker || 'Não',
+        medico: p.medico || '',
+        bcm: evs,
+      });
+    });
+
+    $('app-loading').style.display = 'none';
+    $('clinic-loading').style.display = 'none';
+    setDbStatus('connected', 'Ligado');
+
+    renderActive();
+    refreshOpenModal();
+    if ($('drill-modal').classList.contains('open')) renderDrill();
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  NAVEGAÇÃO
+  // ══════════════════════════════════════════════════════
+  function showTab(id, btn) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    $(id).classList.add('active');
+    (btn || document.querySelector(`.tab-btn[data-tab="${id}"]`)).classList.add('active');
+    hideNamesTip();
+    renderActive();
+  }
+
+  function renderActive() {
+    const id = document.querySelector('.section.active')?.id || 'intro';
+    if (id === 'intro')      { buildPills('intro'); renderDashboard(); }
+    if (id === 'quick')      renderQuick();
+    if (id === 'list')       { refreshMedicoFilter(); renderList(); }
+    if (id === 'results')    { buildPills('res'); renderResults(); }
+    if (id === 'priorities') renderPriorities();
+    if (id === 'reports')    { buildPills('rep'); renderReportPreview(); }
+  }
+
+  // ── Filtros de mês (uma só implementação para Início, Resultados e Relatórios) ──
+  const monthState = { intro: 'all', res: 'all', rep: 'all' };
+  const MONTH_UI = {
+    intro: { pills: 'month-pills',     ctx: 'month-context',     render: () => renderDashboard() },
+    res:   { pills: 'res-month-pills', ctx: 'res-month-context', render: () => renderResults() },
+    rep:   { pills: 'rep-month-pills', ctx: 'rep-month-context', render: () => renderReportPreview() },
+  };
+  function availableMonths() {
+    const set = new Set([todayISO().slice(0, 7)]);
+    patients.forEach(p => (p.bcm || []).forEach(b => { if (b.data) set.add(b.data.slice(0, 7)); }));
+    return Array.from(set).sort().reverse();
+  }
+  function buildPills(key) {
+    const ui = MONTH_UI[key], sel = monthState[key];
+    let html = `<button class="month-pill all ${sel === 'all' ? 'active' : ''}" onclick="selectMonthFor('${key}','all')">Todos</button>`;
+    availableMonths().forEach(m => {
+      html += `<button class="month-pill ${sel === m ? 'active' : ''}" onclick="selectMonthFor('${key}','${m}')">${monthLabel(m)}</button>`;
+    });
+    $(ui.pills).innerHTML = html;
+    $(ui.ctx).innerHTML = sel === 'all' ? 'A mostrar <strong>todos os registos</strong>' : `A mostrar <strong>${monthLabel(sel)}</strong>`;
+  }
+  function selectMonthFor(key, m) {
+    monthState[key] = m;
+    buildPills(key);
+    MONTH_UI[key].render();
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  AGRUPAMENTO DE DOENTES (base dos gráficos, tooltips e listas)
+  // ══════════════════════════════════════════════════════
+  function semDadosInfo(p, mk) {
+    const any = latestAny(p, mk);
+    if (any && any.evalType === 'invalida')  return { s: `inválida ${formatDate(any.data)}`, cls: 'warn', attempt: true };
+    if (any && any.evalType === 'internado') return { s: `internado/férias ${formatDate(any.data)}`, cls: 'warn', attempt: true };
+    const d = daysSinceLastEval(p);
+    if (d === Infinity) return { s: 'nunca avaliado', cls: 'bad' };
+    return { s: `últ. há ${d} d`, cls: daysClass(d) };
+  }
+
+  function groupItems(mk) {
+    const g = { status: { normo: [], sobre: [], sem: [] }, na: [], turno: {} };
+    TURNOS.forEach(t => g.turno[t] = { normo: [], sobre: [], sem: [], aval: [], total: 0 });
+    patients.forEach(p => {
+      if (p.pacemaker === 'Sim') { g.na.push({ id: p.id, n: p.nome, s: p.turno }); return; }
+      const T = g.turno[p.turno];
+      if (T) T.total++;
+      const rec = latestValid(p, mk);
+      if (rec) {
+        const st = ohStatus(p, rec.oh);
+        g.status[st].push({ id: p.id, n: p.nome, s: `${fmtOH(rec.oh)} · ${p.turno}`, cls: st === 'sobre' ? 'bad' : '' });
+        if (T) {
+          T[st].push({ id: p.id, n: p.nome, s: `${fmtOH(rec.oh)} · ${formatDate(rec.data)}`, cls: st === 'sobre' ? 'bad' : '' });
+          T.aval.push({ id: p.id, n: p.nome, s: `${formatDate(rec.data)} · ${fmtOH(rec.oh)}` });
+        }
+      } else {
+        const info = semDadosInfo(p, mk);
+        const it = { id: p.id, n: p.nome, s: info.s, cls: info.cls, attempt: !!info.attempt };
+        g.status.sem.push(it);
+        if (T) T.sem.push(it);
+      }
+    });
+    return g;
+  }
+
+  function periodSubLabel(mk) {
+    return mk === 'all' ? 'Última avaliação válida de cada doente (todos os registos)' : `Período: ${monthLabel(mk)}`;
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  TOOLTIP DE NOMES
+  // ══════════════════════════════════════════════════════
+  const NT_COLORS = { normo: '#2a7a5a', sobre: '#b83232', sem: '#94a3b8', aval: '#2d7dd2', na: '#c07800' };
+
+  function renderNamesTip(c) {
+    const MAX = 75;
+    const list = c.items.slice().sort((a, b) => a.n.localeCompare(b.n, 'pt', { sensitivity: 'base' }));
+    const shown = list.slice(0, MAX);
+    const cols = shown.length > 30 ? 3 : shown.length > 12 ? 2 : 1;
+    return `<div class="nt-head"><span class="nt-dot" style="background:${c.color}"></span>${escHtml(c.title)}<span class="nt-count">${list.length}</span></div>
+      ${c.sub ? `<div class="nt-sub">${escHtml(c.sub)}${list.length ? ' · clique para abrir a lista' : ''}</div>` : ''}
+      ${list.length
+        ? `<ul class="nt-list" style="column-count:${cols}">${shown.map(i =>
+            `<li>${escHtml(i.n)}${i.s ? `<span class="nt-info ${i.cls || ''}">${escHtml(i.s)}</span>` : ''}</li>`).join('')}</ul>`
+        : '<div class="nt-empty">Nenhum doente</div>'}
+      ${list.length > MAX ? `<div class="nt-more">+ ${list.length - MAX} doentes (clique para ver todos)</div>` : ''}`;
+  }
+
+  function showNamesTip(html, x, y) {
+    const el = $('names-tooltip');
+    el.innerHTML = html;
+    el.classList.add('show');
+    const pad = 16, r = el.getBoundingClientRect();
+    let left = x + pad, top = y + pad;
+    if (left + r.width > window.innerWidth - 8) left = x - r.width - pad;
+    if (left < 8) left = 8;
+    if (top + r.height > window.innerHeight - 8) top = Math.max(8, window.innerHeight - r.height - 8);
+    el.style.left = left + 'px';
+    el.style.top = top + 'px';
+  }
+  function hideNamesTip() { $('names-tooltip').classList.remove('show'); }
+  window.addEventListener('scroll', hideNamesTip, { passive: true });
+
+  function bindHoverTip(el, getContent) {
+    const move = e => showNamesTip(renderNamesTip(getContent()), e.clientX, e.clientY);
+    el.addEventListener('mouseenter', move);
+    el.addEventListener('mousemove', move);
+    el.addEventListener('mouseleave', hideNamesTip);
+  }
+
+  // Tooltip "external" do Chart.js
+  function chartNamesTooltip(getContent) {
+    return function ({ chart, tooltip }) {
+      if (tooltip.opacity === 0 || !tooltip.dataPoints || !tooltip.dataPoints.length) { hideNamesTip(); return; }
+      const dp = tooltip.dataPoints[0];
+      const rect = chart.canvas.getBoundingClientRect();
+      showNamesTip(renderNamesTip(getContent(dp.datasetIndex, dp.dataIndex)), rect.left + tooltip.caretX, rect.top + tooltip.caretY);
+    };
+  }
+  function chartClick(getContent) {
+    return (evt, els) => {
+      if (!els.length) return;
+      const { datasetIndex, index } = els[0];
+      hideNamesTip();
+      openDrill(() => getContent(datasetIndex, index));
+    };
+  }
+  const pointerHover = (evt, els) => { evt.native.target.style.cursor = els.length ? 'pointer' : 'default'; };
+
+  // ══════════════════════════════════════════════════════
+  //  INÍCIO: estatísticas, cobertura, gráficos
+  // ══════════════════════════════════════════════════════
+  const STATUS_KEYS = ['normo', 'sobre', 'sem'];
+  const STATUS_LABELS = ['Normohidratados', 'Sobrehidratados', 'Não avaliados / Sem dados'];
+  const STATUS_COLORS = [NT_COLORS.normo, NT_COLORS.sobre, NT_COLORS.sem];
+
+  function statContent(k) {
+    const mk = monthState.intro, g = groupItems(mk);
+    const titles = { normo: 'Normohidratados', sobre: 'Sobrehidratados', na: 'Não avaliáveis (PCM/CDI)' };
+    return { title: titles[k], color: NT_COLORS[k], items: k === 'na' ? g.na : g.status[k], sub: periodSubLabel(mk) };
+  }
+  function donutContent(ds, i) {
+    const mk = monthState.intro, g = groupItems(mk);
+    return { title: ['Normohidratados', 'Sobrehidratados', 'Sem avaliação'][i], color: STATUS_COLORS[i], items: g.status[STATUS_KEYS[i]], sub: periodSubLabel(mk) };
+  }
+  function turnoAvalContent(ds, i) {
+    const mk = monthState.intro, g = groupItems(mk);
+    return { title: `${TURNOS[i]} — avaliados`, color: NT_COLORS.aval, items: g.turno[TURNOS[i]].aval, sub: periodSubLabel(mk) };
+  }
+  function stackContent(ds, i) {
+    const mk = monthState.intro, g = groupItems(mk);
+    return { title: `${TURNOS[i]} — ${STATUS_LABELS[ds]}`, color: STATUS_COLORS[ds], items: g.turno[TURNOS[i]][STATUS_KEYS[ds]], sub: periodSubLabel(mk) };
+  }
+  function coverageMonth() { return monthState.intro === 'all' ? todayISO().slice(0, 7) : monthState.intro; }
+  function coverageContent(t) {
+    const mk = coverageMonth(), g = groupItems(mk);
+    return { title: `${t} — por avaliar em ${monthLabel(mk)}`, color: NT_COLORS.sem, items: g.turno[t].sem, sub: 'Sem avaliação válida no mês' };
+  }
+
+  function bindStatCardTips() {
+    document.querySelectorAll('.stat-card[data-tip]').forEach(card => {
+      bindHoverTip(card, () => statContent(card.dataset.tip));
+      card.addEventListener('click', () => { hideNamesTip(); openDrill(() => statContent(card.dataset.tip)); });
+    });
+  }
+
+  function renderDashboard() {
+    updateStats();
+    renderCoverage();
+    renderCharts();
+  }
+
+  function updateStats() {
+    const g = groupItems(monthState.intro);
+    $('stat-total').textContent = patients.length;
+    $('stat-normo').textContent = g.status.normo.length;
+    $('stat-sobre').textContent = g.status.sobre.length;
+    $('stat-na').textContent = g.na.length;
+  }
+
+  function renderCoverage() {
+    const mk = coverageMonth(), g = groupItems(mk);
+    $('cov-title').textContent = `Cobertura de avaliação — ${monthLabel(mk)}${monthState.intro === 'all' ? ' (mês atual)' : ''}`;
+    let tDone = 0, tTot = 0;
+    $('cov-grid').innerHTML = TURNOS.map(t => {
+      const T = g.turno[t];
+      const done = T.normo.length + T.sobre.length;
+      const att = T.sem.filter(i => i.attempt).length;
+      const pct = T.total ? Math.round(done / T.total * 100) : 0;
+      tDone += done; tTot += T.total;
+      return `<div class="cov-item" data-turno="${t}">
+        <div class="cov-label">${t}</div>
+        <div class="cov-pct ${pct >= 80 ? 'good' : pct >= 50 ? 'mid' : 'low'}">${T.total ? pct + '%' : '—'}</div>
+        <div class="cov-bar"><div class="done" style="width:${T.total ? done / T.total * 100 : 0}%"></div><div class="att" style="width:${T.total ? att / T.total * 100 : 0}%"></div></div>
+        <div class="cov-num">${done}/${T.total} avaliados${att ? ` · ${att} inválida/ausente` : ''}</div>
+      </div>`;
+    }).join('');
+    const totPct = tTot ? Math.round(tDone / tTot * 100) : 0;
+    $('cov-sub').innerHTML = `Doentes avaliáveis com avaliação válida no mês: <strong>${tDone}/${tTot} (${totPct}%)</strong>. Laranja = registo inválido ou ausência. Passe o rato para ver quem falta; clique para abrir a lista.`;
+    document.querySelectorAll('.cov-item').forEach(el => {
+      const t = el.dataset.turno;
+      bindHoverTip(el, () => coverageContent(t));
+      el.addEventListener('click', () => { hideNamesTip(); openDrill(() => coverageContent(t)); });
+    });
+  }
+
+  function renderCharts() {
+    const g = groupItems(monthState.intro);
+
+    // Donut
+    if (chartDonut) chartDonut.destroy();
+    const donutData = STATUS_KEYS.map(k => g.status[k].length);
+    const donutLabels = ['Normohidratados', 'Sobrehidratados', 'Sem avaliação'];
+    const donutColors = ['#2a7a5a', '#b83232', '#cbd5e1'];
+    chartDonut = new Chart($('chartDonut'), {
+      type: 'doughnut',
+      data: { labels: donutLabels, datasets: [{ data: donutData, backgroundColor: donutColors, borderWidth: 2, borderColor: '#fff', hoverOffset: 6 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: '65%',
+        onClick: chartClick(donutContent), onHover: pointerHover,
+        plugins: { legend: { display: false }, tooltip: { enabled: false, external: chartNamesTooltip(donutContent) } }
+      }
+    });
+    $('legendDonut').innerHTML = donutLabels.map((l, i) =>
+      `<div class="legend-item"><div class="legend-dot" style="background:${donutColors[i]}"></div>${l}: <strong>${donutData[i]}</strong></div>`).join('');
+
+    // Avaliados por turno
+    if (chartTurno) chartTurno.destroy();
+    chartTurno = new Chart($('chartTurno'), {
+      type: 'bar',
+      data: {
+        labels: TURNOS.map(t => t.replace(' ', '\n')),
+        datasets: [{ label: 'Avaliados', data: TURNOS.map(t => g.turno[t].aval.length), backgroundColor: '#2d7dd2cc', borderColor: '#2d7dd2', borderWidth: 1.5, borderRadius: 6 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        onClick: chartClick(turnoAvalContent), onHover: pointerHover,
+        plugins: { legend: { display: false }, tooltip: { enabled: false, external: chartNamesTooltip(turnoAvalContent) } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } }, grid: { color: '#e8edf3' } }, x: { ticks: { font: { size: 10 } }, grid: { display: false } } }
+      }
+    });
+
+    // Hidratação por turno (empilhado) — cada zona tem a sua lista
+    if (chartTurnoStack) chartTurnoStack.destroy();
+    chartTurnoStack = new Chart($('chartTurnoStack'), {
+      type: 'bar',
+      data: {
+        labels: TURNOS.map(t => t.replace(' ', '\n')),
+        datasets: [
+          { label: 'Normohidratados', data: TURNOS.map(t => g.turno[t].normo.length), backgroundColor: '#2a7a5acc', borderColor: '#2a7a5a', borderWidth: 1, borderRadius: 4 },
+          { label: 'Sobrehidratados', data: TURNOS.map(t => g.turno[t].sobre.length), backgroundColor: '#b83232cc', borderColor: '#b83232', borderWidth: 1, borderRadius: 4 },
+          { label: 'Sem dados',       data: TURNOS.map(t => g.turno[t].sem.length),   backgroundColor: '#cbd5e1',   borderColor: '#aab4c2', borderWidth: 1, borderRadius: 4 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'point', intersect: true },
+        onClick: chartClick(stackContent), onHover: pointerHover,
+        plugins: { legend: { display: false }, tooltip: { enabled: false, external: chartNamesTooltip(stackContent) } },
+        scales: { x: { stacked: true, ticks: { font: { size: 10 } }, grid: { display: false } }, y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } }, grid: { color: '#e8edf3' } } }
+      }
+    });
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  LISTA FIXADA (drill-down)
+  // ══════════════════════════════════════════════════════
+  let drillGetter = null;
+  function openDrill(getter) {
+    drillGetter = getter;
+    renderDrill();
+    $('drill-modal').classList.add('open');
+    syncBodyScroll();
+  }
+  function renderDrill() {
+    if (!drillGetter) return;
+    const c = drillGetter();
+    const list = c.items.slice().sort((a, b) => a.n.localeCompare(b.n, 'pt', { sensitivity: 'base' }));
+    $('drill-title').textContent = c.title;
+    $('drill-sub').textContent = `${plural(list.length, 'doente')} · ${c.sub || ''}`;
+    $('drill-body').innerHTML = list.length ? list.map(i => {
+      const p = patients.find(x => x.id === i.id);
+      const pace = p && p.pacemaker === 'Sim';
+      return `<div class="drill-row">
+        <div class="dn"><div class="dn-name">${escHtml(i.n)}</div><div class="dn-info ${i.cls || ''}">${escHtml(i.s || '')}${p ? ' · ' + escHtml(p.medico) : ''}</div></div>
+        <button class="btn-action btn-bcm" onclick="openModal('${i.id}')" ${pace ? 'disabled' : ''}>Avaliar</button>
+        <button class="btn-action" style="background:#e8f0ff;color:#2952a3;" onclick="openEditPatientModal('${i.id}')" title="Editar dados do doente">✎</button>
+      </div>`;
+    }).join('') : '<div class="no-bcm">Nenhum doente nesta categoria.</div>';
+  }
+  function closeDrill() {
+    $('drill-modal').classList.remove('open');
+    drillGetter = null;
+    syncBodyScroll();
+  }
+  $('drill-modal').addEventListener('click', function (e) { if (e.target === this) closeDrill(); });
+
+  // ══════════════════════════════════════════════════════
+  //  REGISTAR DOENTE
+  // ══════════════════════════════════════════════════════
+  function findDuplicateName(nome, excludeId) {
+    const n = normName(nome);
+    return patients.find(p => p.id !== excludeId && normName(p.nome) === n);
+  }
+
+  async function savePatient() {
+    const d = {
+      nome: $('f-nome').value.trim().replace(/\s+/g, ' '),
+      genero: document.querySelector('input[name="genero"]:checked')?.value || '',
+      turno: $('f-turno').value,
+      pacemaker: document.querySelector('input[name="pacemaker"]:checked')?.value || '',
+      medico: $('f-medico').value,
+      criadoEm: new Date().toISOString(),
+    };
+    if (!d.nome || !d.genero || !d.turno || !d.pacemaker || !d.medico) { alert('Por favor, preencha todos os campos obrigatórios.'); return; }
+    if (!db) { alert('Sem ligação ao Firebase.'); return; }
+    const dup = findDuplicateName(d.nome);
+    if (dup && !confirm(`Já existe um doente com este nome:\n\n${dup.nome} — ${dup.turno}, ${dup.medico}\n\nRegistar mesmo assim?`)) return;
+    try {
+      await db.ref(clinicPath() + '/patients').push(d);
+      showToast('Doente registado com sucesso!');
+      resetForm();
+    } catch (e) { showToast('Erro ao guardar: ' + e.message, 'error'); }
+  }
+
+  function resetForm() {
+    $('f-nome').value = '';
+    document.querySelectorAll('#form input[type=radio]').forEach(r => r.checked = false);
+    $('f-turno').value = '';
+    $('f-medico').value = '';
+  }
+
+  async function deletePatient(id) {
+    const p = patients.find(x => x.id === id);
+    if (!confirm(`Remover ${p ? p.nome : 'este doente'} e todas as suas avaliações BCM?\n\nEsta ação não pode ser desfeita.`)) return;
+    if (!db) return;
+    try {
+      const eSnap = await db.ref(clinicPath() + '/evaluations').orderByChild('patientId').equalTo(id).once('value');
+      const updates = {};
+      eSnap.forEach(child => { updates[clinicPath() + '/evaluations/' + child.key] = null; });
+      updates[clinicPath() + '/patients/' + id] = null;
+      await db.ref().update(updates);
+      showToast('Doente removido.');
+    } catch (e) { showToast('Erro ao remover: ' + e.message, 'error'); }
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  REGISTO RÁPIDO POR TURNO
+  // ══════════════════════════════════════════════════════
+  let quickDraft = {};   // patientId → { type, oh, vdu, pseco, pnormo } (texto dos campos)
+  function draftFilled(d) { return !!d && ((d.type && d.type !== 'normal') || EVAL_FIELDS.some(k => (d[k] ?? '') !== '')); }
+  function quickPatients(turno) { return patients.filter(p => p.turno === turno && p.pacemaker !== 'Sim').sort(byName); }
+
+  function renderQuick() {
+    const turno = $('q-turno').value;
+    const data = $('q-data').value || todayISO();
+    const only = $('q-only-missing').checked;
+    const mk = data.slice(0, 7);
+    const wrap = $('q-table-wrap');
+    if (!turno) {
+      wrap.innerHTML = `<div class="empty-state" style="padding:36px"><p>Selecione um turno para começar.</p></div>`;
+      updateQuickFooter(); return;
+    }
+    const focusId = document.activeElement && document.activeElement.id;
+    const all = quickPatients(turno);
+    const list = only ? all.filter(p => !latestValid(p, mk) || draftFilled(quickDraft[p.id])) : all;
+    if (!list.length) {
+      wrap.innerHTML = `<div class="empty-state" style="padding:36px"><p>${all.length ? `Todos os doentes deste turno já têm avaliação válida em ${monthLabel(mk)}.` : 'Sem doentes avaliáveis neste turno.'}</p></div>`;
+      updateQuickFooter(); return;
+    }
+    const rows = list.map(p => {
+      const d = quickDraft[p.id] || {};
+      const special = d.type && d.type !== 'normal';
+      const last = latestValid(p, 'all');
+      const days = daysSinceLastEval(p);
+      const lastInfo = last
+        ? `<span class="${ohStatus(p, last.oh) === 'normo' ? 'val-green' : 'val-red'}">${fmtOH(last.oh)}</span> · ${formatDate(last.data)}`
+        : '<span class="muted">sem avaliações válidas</span>';
+      const same = (p.bcm || []).some(b => b.data === data) ? '<span class="badge-same">já tem registo nesta data</span>' : '';
+      return `<tr id="q-row-${p.id}" data-pid="${p.id}">
+        <td><div class="q-name">${escHtml(p.nome)}${same}</div><div class="q-meta">${escHtml(p.medico)} · ${escHtml(p.genero)} · limite ${ohThreshold(p.genero)} %</div></td>
+        <td>${lastInfo}<div class="q-meta"><span class="nt-info ${daysClass(days)}" style="margin:0">${days === Infinity ? 'nunca avaliado' : `há ${days} d`}</span></div></td>
+        <td><select id="q-type-${p.id}" data-f="type">
+          <option value="normal">Normal</option>
+          <option value="invalida" ${d.type === 'invalida' ? 'selected' : ''}>Inválida</option>
+          <option value="internado" ${d.type === 'internado' ? 'selected' : ''}>Internado/Férias</option>
+        </select></td>
+        ${EVAL_FIELDS.map(k => `<td><input type="number" step="0.1" id="q-${k}-${p.id}" data-f="${k}" value="${escHtml(d[k] ?? '')}" ${special ? 'disabled' : ''} /></td>`).join('')}
+        <td class="q-delta" id="q-delta-${p.id}"></td>
+      </tr>`;
+    }).join('');
+    wrap.innerHTML = `<div style="overflow-x:auto"><table class="quick-table">
+      <thead><tr><th>Doente</th><th>Última avaliação</th><th>Tipo</th><th>OH (%)</th><th>VDU (L)</th><th>P. Seco (kg)</th><th>P. Normo (kg)</th><th>Estado / Δ</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>`;
+    list.forEach(p => updateQuickRow(p.id));
+    if (focusId && $(focusId)) $(focusId).focus();
+    updateQuickFooter();
+  }
+
+  function updateQuickRow(pid) {
+    const tr = $('q-row-' + pid), cell = $('q-delta-' + pid);
+    const p = patients.find(x => x.id === pid);
+    if (!tr || !cell || !p) return;
+    const d = quickDraft[pid];
+    tr.className = '';
+    tr.title = '';
+    if (!draftFilled(d)) { cell.innerHTML = ''; return; }
+    if (d.type && d.type !== 'normal') {
+      tr.classList.add('special');
+      cell.innerHTML = d.type === 'invalida' ? '⚠ Inválida / sem dados' : '🏥 Internado / férias';
+      return;
+    }
+    const vals = {}; EVAL_FIELDS.forEach(k => vals[k] = parseNum(d[k]));
+    if (vals.oh === null) { tr.classList.add('has-error'); cell.innerHTML = '<span class="bad">Falta o OH</span>'; return; }
+    const v = validateEval(p, vals, null);
+    const h = ohHint(p, d.oh, null);
+    if (v.errors.length) { tr.classList.add('has-error'); tr.title = v.errors.join('\n'); cell.innerHTML = `<span class="bad">${escHtml(v.errors[0])}</span>`; return; }
+    tr.classList.add(v.warnings.length ? 'has-warn' : 'filled');
+    tr.title = v.warnings.join('\n');
+    cell.innerHTML = `<span class="${v.warnings.length ? 'warn' : ''}">${escHtml(h.text.replace(/ \(limite.*?\)/, ''))}</span>${v.warnings.length ? `<div class="warn" style="font-size:0.7rem">${plural(v.warnings.length, 'aviso')} — ver ao passar o rato</div>` : ''}`;
+  }
+
+  function updateQuickFooter() {
+    const turno = $('q-turno').value;
+    const inTurno = turno ? quickPatients(turno).filter(p => draftFilled(quickDraft[p.id])).length : 0;
+    const total = Object.keys(quickDraft).filter(id => draftFilled(quickDraft[id])).length;
+    const other = total - inTurno;
+    $('q-count').innerHTML = (inTurno ? `<strong>${plural(inTurno, 'registo')}</strong> por guardar neste turno` : 'Nenhum registo por guardar neste turno')
+      + (other > 0 ? ` · ${other} noutros turnos` : '');
+    $('q-save-btn').disabled = !inTurno;
+  }
+
+  $('q-table-wrap').addEventListener('input', onQuickInput);
+  $('q-table-wrap').addEventListener('change', onQuickInput);
+  $('q-table-wrap').addEventListener('keydown', e => {
+    if (e.key !== 'Enter' || e.target.tagName !== 'INPUT') return;
+    e.preventDefault();
+    const f = e.target.dataset.f;
+    let next = e.target.closest('tr').nextElementSibling;
+    while (next) {
+      const i = next.querySelector(`[data-f="${f}"]`);
+      if (i && !i.disabled) { i.focus(); i.select && i.select(); return; }
+      next = next.nextElementSibling;
+    }
+  });
+  function onQuickInput(e) {
+    const el = e.target, f = el.dataset.f;
+    if (!f) return;
+    const pid = el.closest('tr').dataset.pid;
+    const d = quickDraft[pid] || (quickDraft[pid] = { type: 'normal' });
+    d[f] = el.value;
+    if (f === 'type') EVAL_FIELDS.forEach(k => { const i = $(`q-${k}-${pid}`); if (i) i.disabled = el.value !== 'normal'; });
+    if (!draftFilled(d)) delete quickDraft[pid];
+    updateQuickRow(pid);
+    updateQuickFooter();
+  }
+
+  function clearQuick() {
+    const turno = $('q-turno').value;
+    if (!turno) return;
+    const ids = quickPatients(turno).filter(p => draftFilled(quickDraft[p.id])).map(p => p.id);
+    if (!ids.length) return;
+    if (!confirm(`Apagar ${plural(ids.length, 'registo')} ainda não guardado(s) deste turno?`)) return;
+    ids.forEach(id => delete quickDraft[id]);
+    renderQuick();
+  }
+
+  async function saveQuick() {
+    const turno = $('q-turno').value, data = $('q-data').value;
+    if (!turno || !data) { alert('Selecione o turno e a data.'); return; }
+    if (!db) { alert('Sem ligação ao Firebase.'); return; }
+    const entries = quickPatients(turno).filter(p => draftFilled(quickDraft[p.id]));
+    if (!entries.length) return;
+    const errors = [], warnings = [], evs = [];
+    const now = new Date().toISOString();
+    if (data > todayISO()) warnings.push('A data selecionada é futura.');
+    entries.forEach(p => {
+      const d = quickDraft[p.id], type = d.type || 'normal';
+      if ((p.bcm || []).some(b => b.data === data)) warnings.push(`${p.nome}: já tem registo em ${formatDate(data)}.`);
+      if (type !== 'normal') { evs.push({ p, ev: { patientId: p.id, data, evalType: type, criadoEm: now } }); return; }
+      const vals = {}; EVAL_FIELDS.forEach(k => vals[k] = parseNum(d[k]));
+      if (vals.oh === null) { errors.push(`${p.nome}: falta o OH.`); return; }
+      const v = validateEval(p, vals, null);
+      v.errors.forEach(x => errors.push(`${p.nome}: ${x}`));
+      v.warnings.forEach(x => warnings.push(`${p.nome}: ${x}`));
+      const ev = { patientId: p.id, data, oh: vals.oh, criadoEm: now };
+      if (vals.vdu !== null) ev.vdu = vals.vdu;
+      if (vals.pseco !== null) ev.psp = vals.pseco;
+      if (vals.pnormo !== null) ev.pnh = vals.pnormo;
+      evs.push({ p, ev });
+    });
+    if (errors.length) { alert('Corrija antes de guardar:\n\n• ' + errors.join('\n• ')); return; }
+    const msg = `Guardar ${plural(evs.length, 'registo')} do turno ${turno} em ${formatDate(data)}?`
+      + (warnings.length ? '\n\nAtenção:\n• ' + warnings.join('\n• ') : '');
+    if (!confirm(msg)) return;
+    const base = clinicPath() + '/evaluations';
+    const updates = {};
+    evs.forEach(({ ev }) => { updates[base + '/' + db.ref(base).push().key] = ev; });
+    try {
+      await db.ref().update(updates);
+      evs.forEach(({ p }) => delete quickDraft[p.id]);
+      showToast(`${plural(evs.length, 'registo')} guardado(s)!`);
+      renderQuick();
+    } catch (e) { showToast('Erro ao guardar: ' + e.message, 'error'); }
+  }
+
+  window.addEventListener('beforeunload', e => {
+    if (Object.keys(quickDraft).length) { e.preventDefault(); e.returnValue = ''; }
+  });
+
+  // ══════════════════════════════════════════════════════
+  //  LISTAGEM
+  // ══════════════════════════════════════════════════════
+  function refreshMedicoFilter() {
+    const meds = Array.from(new Set([...MEDICOS, ...patients.map(p => p.medico).filter(Boolean)]));
+    fillSelect($('lf-medico'), meds, 'Todos os médicos');
+  }
+  function statusKey(p) { return p.pacemaker === 'Sim' ? 'na' : (hydrationStatusForMonth(p, 'all') || 'sem'); }
+
+  function renderList() {
+    const q = $('search-box').value.toLowerCase();
+    const ft = $('lf-turno').value, fm = $('lf-medico').value, fe = $('lf-estado').value, fa = $('lf-atraso').value;
+    const filtered = patients.filter(p => {
+      if (q && !(p.nome.toLowerCase().includes(q) || p.medico.toLowerCase().includes(q) || p.turno.toLowerCase().includes(q))) return false;
+      if (ft && p.turno !== ft) return false;
+      if (fm && p.medico !== fm) return false;
+      if (fe && statusKey(p) !== fe) return false;
+      if (fa) {
+        if (p.pacemaker === 'Sim') return false;
+        const d = daysSinceLastEval(p);
+        if (fa === 'never' && d !== Infinity) return false;
+        if (fa !== 'never' && d < parseInt(fa, 10)) return false;
+      }
+      return true;
+    }).sort(byName);
+
+    $('count-badge').textContent = plural(filtered.length, 'doente');
+    const grid = $('patient-grid');
+    if (!filtered.length) {
+      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        <p>${patients.length ? 'Nenhum resultado encontrado.' : 'Ainda não existem doentes registados.'}</p></div>`;
+      return;
+    }
+    grid.innerHTML = filtered.map(p => {
+      const validCount = (p.bcm || []).filter(hasOH).length;
+      const isPace = p.pacemaker === 'Sim';
+      const st = statusKey(p);
+      const statusTag = isPace ? `<span class="tag tag-na">Não Avaliável</span>`
+        : st === 'normo' ? `<span class="tag tag-normo">✓ Normohidratado</span>`
+        : st === 'sobre' ? `<span class="tag tag-sobre">⚠ Sobrehidratado</span>` : '';
+      const last = latestValid(p, 'all');
+      const days = daysSinceLastEval(p);
+      const lastLine = isPace ? '' : `<div class="pc-last ${daysClass(days)}">${last ? `Última válida: ${fmtOH(last.oh)} · ${formatDate(last.data)}` : 'Sem avaliações válidas'}${days === Infinity ? '' : ` · últ. registo há ${days} d`}</div>`;
+      return `
+      <div class="patient-card ${isPace ? 'pacemaker-card' : ''}">
+        <div class="pc-name">${escHtml(p.nome)}</div>
+        <div class="pc-tags">
+          <span class="tag tag-gender">${escHtml(p.genero)}</span>
+          <span class="tag tag-turn">${escHtml(p.turno)}</span>
+          <span class="tag ${isPace ? 'tag-yes' : 'tag-no'}">PCM/CDI: ${escHtml(p.pacemaker)}</span>
+          ${validCount > 0 ? `<span class="tag tag-bcm">${validCount} aval.</span>` : ''}
+          ${statusTag}
+        </div>
+        <div class="pc-doctor">${escHtml(p.medico)}</div>
+        ${lastLine}
+        <div class="pc-actions">
+          <button class="btn-action btn-bcm" onclick="openModal('${p.id}')" ${isPace ? 'disabled title="Pacemaker/CDI — não avaliável"' : ''}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            ${isPace ? 'Não Avaliável' : 'Avaliação BCM'}
+          </button>
+          <button class="btn-action" style="background:#e8f0ff;color:#2952a3;flex:0;padding:7px 10px;" onclick="openEditPatientModal('${p.id}')" title="Editar dados do doente">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="btn-action btn-del-sm" onclick="deletePatient('${p.id}')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+            Remover
+          </button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  MODAL BCM (avaliação individual + evolução)
+  // ══════════════════════════════════════════════════════
+  function openModal(id) {
+    const p = patients.find(x => x.id === id);
+    if (!p) return;
+    currentPatientId = id;
+    $('modal-patient-name').textContent = `${p.nome} · ${p.turno} · ${p.medico}`;
+    buildModalBody(p);
+    $('bcm-modal').classList.add('open');
+    syncBodyScroll();
+    setTimeout(() => $('bcm-oh') && $('bcm-oh').focus(), 50);
+  }
+
+  function buildModalBody(p) {
+    const container = $('modal-body-content');
+    if (chartEvo) { chartEvo.destroy(); chartEvo = null; }
+    if (p.pacemaker === 'Sim') {
+      container.innerHTML = `
+        <div class="pace-notice">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <strong>Doente com Pacemaker / CDI</strong><br>
+          Este doente não é avaliável por BCM devido à presença de dispositivo cardíaco implantado.
+        </div>`;
+      return;
+    }
+    const today = todayISO();
+    container.innerHTML = `
+      <div class="bcm-summary" id="bcm-summary"></div>
+      <div class="form-group full" style="margin-bottom:16px;">
+        <label>Tipo de Registo <span class="req">*</span></label>
+        <div class="toggle-group" style="gap:8px;">
+          <label class="toggle-option yes" style="flex:2;font-size:0.82rem;" onclick="setEvalType('normal')">
+            <input type="radio" name="eval-type" value="normal" checked /> 📊 Avaliação Normal
+          </label>
+          <label class="toggle-option" style="flex:2;font-size:0.78rem;background:#fff8ee;border-color:#f5d89a;color:#a0620a;" onclick="setEvalType('invalida')">
+            <input type="radio" name="eval-type" value="invalida" /> ⚠ Inválida / Sem Dados
+          </label>
+          <label class="toggle-option" style="flex:2;font-size:0.78rem;background:#eef3ff;border-color:#b3c8f5;color:#2952a3;" onclick="setEvalType('internado')">
+            <input type="radio" name="eval-type" value="internado" /> 🏥 Internado / Férias
+          </label>
+        </div>
+      </div>
+      <div class="modal-form-grid" id="eval-normal-fields">
+        <div class="form-group full">
+          <label>Data da Avaliação <span class="req">*</span></label>
+          <input type="date" id="bcm-data" value="${today}" max="${today}" />
+        </div>
+        <div class="form-group">
+          <label>Sobrehidratação relativa (OH) <span class="req">*</span></label>
+          <div class="input-unit"><input type="number" id="bcm-oh" placeholder="0.0" step="0.1" /><span class="unit">%</span></div>
+          <span class="field-hint" id="bcm-oh-hint"></span>
+        </div>
+        <div class="form-group">
+          <label>Vol. Distribuição Ureia</label>
+          <div class="input-unit"><input type="number" id="bcm-vdu" placeholder="0.0" step="0.1" /><span class="unit">L</span></div>
+        </div>
+        <div class="form-group">
+          <label>Peso Seco</label>
+          <div class="input-unit"><input type="number" id="bcm-pseco" placeholder="0.0" step="0.1" /><span class="unit">kg</span></div>
+        </div>
+        <div class="form-group">
+          <label>Peso Normohidratado</label>
+          <div class="input-unit"><input type="number" id="bcm-pnormo" placeholder="0.0" step="0.1" /><span class="unit">kg</span></div>
+        </div>
+      </div>
+      <div id="eval-special-fields" style="display:none;">
+        <div class="form-group" style="margin-bottom:16px;">
+          <label>Data do Registo <span class="req">*</span></label>
+          <input type="date" id="bcm-data-special" value="${today}" max="${today}" />
+        </div>
+        <div id="eval-special-note" style="background:#f7f9fc;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:0.82rem;color:var(--text-muted);"></div>
+      </div>
+      <div class="btn-row" style="margin-top:18px;">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveBcm()">Guardar Registo</button>
+      </div>
+      <div class="bcm-history" id="evo-section">
+        <div class="bcm-history-title">Evolução do OH</div>
+        <div class="evo-wrap"><canvas id="oh-evo-chart"></canvas></div>
+      </div>
+      <div class="bcm-history">
+        <div class="bcm-history-title">Histórico de Avaliações</div>
+        <div id="bcm-history-content"></div>
+      </div>`;
+    $('bcm-oh').addEventListener('input', () => updateOhHintFor(p.id, 'bcm-oh', 'bcm-oh-hint', null));
+    $('eval-normal-fields').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); saveBcm(); } });
+    updateOhHintFor(p.id, 'bcm-oh', 'bcm-oh-hint', null);
+    refreshModalData(p);
+  }
+
+  function updateOhHintFor(pid, inputId, hintId, excludeId) {
+    const p = patients.find(x => x.id === pid), el = $(hintId);
+    if (!p || !el) return;
+    const h = ohHint(p, $(inputId).value, excludeId);
+    el.textContent = h.text;
+    el.classList.toggle('warn', h.warn);
+  }
+
+  function refreshModalData(p) {
+    const s = $('bcm-summary');
+    if (s) {
+      const last = latestValid(p, 'all'), days = daysSinceLastEval(p);
+      s.innerHTML = last
+        ? `Última avaliação válida: <strong class="${ohStatus(p, last.oh) === 'normo' ? 'val-green' : 'val-red'}">${fmtOH(last.oh)}</strong> em ${formatDate(last.data)} · limite ≤ ${ohThreshold(p.genero)} % · último registo há ${days} d`
+        : `Sem avaliações válidas${days === Infinity ? ' — nunca avaliado' : ` · último registo há ${days} d`} · limite ≤ ${ohThreshold(p.genero)} %`;
+    }
+    renderBcmHistory(p);
+    renderEvoChart(p);
+  }
+
+  function refreshOpenModal() {
+    if (!$('bcm-modal').classList.contains('open') || !currentPatientId) return;
+    const p = patients.find(x => x.id === currentPatientId);
+    if (!p) { closeModal(); return; }
+    if (p.pacemaker === 'Sim') { buildModalBody(p); return; }
+    refreshModalData(p);
+    if ($('bcm-oh')) updateOhHintFor(p.id, 'bcm-oh', 'bcm-oh-hint', null);
+  }
+
+  function renderEvoChart(p) {
+    const sec = $('evo-section'), cv = $('oh-evo-chart');
+    if (chartEvo) { chartEvo.destroy(); chartEvo = null; }
+    if (!sec || !cv) return;
+    const recs = (p.bcm || []).filter(hasOH).slice().reverse();
+    sec.style.display = recs.length ? '' : 'none';
+    if (!recs.length) return;
+    const limit = ohThreshold(p.genero);
+    chartEvo = new Chart(cv, {
+      type: 'line',
+      data: {
+        labels: recs.map(r => formatDate(r.data)),
+        datasets: [
+          { label: 'OH (%)', data: recs.map(r => r.oh), borderColor: '#6a3ab2', backgroundColor: '#6a3ab2',
+            pointBackgroundColor: recs.map(r => r.oh <= limit ? '#2a7a5a' : '#b83232'), pointBorderColor: '#fff', pointRadius: 5, tension: 0.25 },
+          { label: `Limite (${limit} %)`, data: recs.map(() => limit), borderColor: '#b83232', borderDash: [5, 4], pointRadius: 0, borderWidth: 1.2 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y} %` } } },
+        scales: { y: { suggestedMin: Math.min(0, ...recs.map(r => r.oh)) , suggestedMax: Math.max(limit + 5, ...recs.map(r => r.oh)), grid: { color: '#e8edf3' }, ticks: { font: { size: 10 }, callback: v => v + ' %' } }, x: { ticks: { font: { size: 10 } }, grid: { display: false } } }
+      }
+    });
+  }
+
+  function setEvalType(type) {
+    const note = $('eval-special-note');
+    document.querySelectorAll('input[name="eval-type"]').forEach(r => r.checked = (r.value === type));
+    $('eval-normal-fields').style.display = type === 'normal' ? '' : 'none';
+    $('eval-special-fields').style.display = type === 'normal' ? 'none' : '';
+    if (type === 'invalida') note.innerHTML = '<strong>⚠ Avaliação inválida / sem dados</strong><br>Não foi possível obter dados válidos nesta sessão. Apenas a data será registada. O registo conta para o cálculo de atraso, mas não altera o estado de hidratação.';
+    if (type === 'internado') note.innerHTML = '<strong>🏥 Doente internado / férias</strong><br>O doente não estava disponível para avaliação. Apenas a data será registada. O registo conta para o cálculo de atraso, mas não altera o estado de hidratação.';
+  }
+
+  function closeModal() {
+    $('bcm-modal').classList.remove('open');
+    if (chartEvo) { chartEvo.destroy(); chartEvo = null; }
+    currentPatientId = null;
+    syncBodyScroll();
+  }
+  $('bcm-modal').addEventListener('click', function (e) { if (e.target === this) closeModal(); });
+
+  function readEvalFields(prefix) {
+    const vals = {};
+    EVAL_FIELDS.forEach(k => vals[k] = parseNum($(prefix + k).value));
+    return vals;
+  }
+  function confirmWarnings(warnings) {
+    return !warnings.length || confirm('Atenção:\n\n• ' + warnings.join('\n• ') + '\n\nGuardar mesmo assim?');
+  }
+
+  async function saveBcm() {
+    const p = patients.find(x => x.id === currentPatientId);
+    if (!p) return;
+    if (!db) { alert('Sem ligação ao Firebase.'); return; }
+    const evalType = document.querySelector('input[name="eval-type"]:checked')?.value || 'normal';
+    const warnings = [];
+    let ev, data;
+    if (evalType === 'normal') {
+      data = $('bcm-data').value;
+      const vals = readEvalFields('bcm-');
+      if (!data || vals.oh === null) { alert('A data e o valor de sobrehidratação (OH) são obrigatórios.'); return; }
+      const v = validateEval(p, vals, null);
+      if (v.errors.length) { alert('Valores inválidos:\n\n• ' + v.errors.join('\n• ')); return; }
+      warnings.push(...v.warnings);
+      ev = { patientId: p.id, data, oh: vals.oh, criadoEm: new Date().toISOString() };
+      if (vals.vdu !== null) ev.vdu = vals.vdu;
+      if (vals.pseco !== null) ev.psp = vals.pseco;
+      if (vals.pnormo !== null) ev.pnh = vals.pnormo;
+    } else {
+      data = $('bcm-data-special').value;
+      if (!data) { alert('A data é obrigatória.'); return; }
+      ev = { patientId: p.id, data, evalType, criadoEm: new Date().toISOString() };
+    }
+    if (data > todayISO()) warnings.unshift('A data é futura.');
+    if ((p.bcm || []).some(b => b.data === data)) warnings.unshift(`Já existe um registo em ${formatDate(data)} para este doente.`);
+    if (!confirmWarnings(warnings)) return;
+    try {
+      await db.ref(clinicPath() + '/evaluations').push(ev);
+      EVAL_FIELDS.forEach(k => { if ($('bcm-' + k)) $('bcm-' + k).value = ''; });
+      showToast(evalType === 'normal' ? 'Avaliação BCM guardada!' : evalType === 'invalida' ? 'Registo inválido guardado!' : 'Registo de internamento guardado!');
+    } catch (e) { showToast('Erro ao guardar: ' + e.message, 'error'); }
+  }
+
+  async function deleteBcm(evalId) {
+    if (!db) return;
+    let rec = null;
+    for (const p of patients) { rec = (p.bcm || []).find(b => b.id === evalId); if (rec) break; }
+    const desc = rec ? (hasOH(rec) ? `de ${formatDate(rec.data)} (OH ${fmtOH(rec.oh)})` : `de ${formatDate(rec.data)}`) : '';
+    if (!confirm(`Remover o registo ${desc}?\n\nEsta ação não pode ser desfeita.`)) return;
+    try {
+      await db.ref(clinicPath() + '/evaluations/' + evalId).remove();
+      showToast('Registo removido.');
+    } catch (e) { showToast('Erro ao remover avaliação.', 'error'); }
+  }
+
+  function renderBcmHistory(p) {
+    const container = $('bcm-history-content');
+    if (!container) return;
+    const records = p.bcm || [];
+    if (!records.length) { container.innerHTML = '<div class="no-bcm">Nenhuma avaliação registada para este doente.</div>'; return; }
+    const delBtn = id => `<button class="btn-del-row" onclick="deleteBcm('${id}')" title="Remover">✕</button>`;
+    const rows = records.map(b => {
+      if (b.evalType) {
+        const badge = b.evalType === 'invalida'
+          ? '<span class="eval-type-badge eval-type-invalid">⚠ Avaliação inválida / sem dados</span>'
+          : '<span class="eval-type-badge eval-type-internado">🏥 Internado / Férias</span>';
+        return `<tr><td>${formatDate(b.data)}</td><td colspan="4">${badge}</td><td style="white-space:nowrap">${delBtn(b.id)}</td></tr>`;
+      }
+      const ohDisp = hasOH(b) ? `<span class="${ohStatus(p, b.oh) === 'normo' ? 'val-green' : 'val-red'}">${fmtOH(b.oh)}</span>` : '—';
+      return `<tr>
+        <td>${formatDate(b.data)}</td><td>${ohDisp}</td>
+        <td>${fmtNum(b.vdu, 'L')}</td><td>${fmtNum(b.pseco, 'kg')}</td><td>${fmtNum(b.pnormo, 'kg')}</td>
+        <td style="white-space:nowrap">
+          <button class="btn-edit-row" onclick="openEditModal('${b.id}')" title="Editar avaliação">
+            <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          ${delBtn(b.id)}
+        </td></tr>`;
+    }).join('');
+    container.innerHTML = `<table class="bcm-table">
+      <thead><tr><th>Data</th><th>OH (%)</th><th>VDU (L)</th><th>P. Seco (kg)</th><th>P. Normo (kg)</th><th></th></tr></thead>
+      <tbody>${rows}</tbody></table>`;
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  EDITAR AVALIAÇÃO
+  // ══════════════════════════════════════════════════════
+  let editEvalPatientId = null;
+  function openEditModal(evalId) {
+    let target = null, owner = null;
+    for (const p of patients) { const f = (p.bcm || []).find(b => b.id === evalId); if (f) { target = f; owner = p; break; } }
+    if (!target) { showToast('Avaliação não encontrada.', 'error'); return; }
+    editEvalPatientId = owner.id;
+    $('edit-eval-id').value = evalId;
+    $('edit-bcm-data').value = target.data || '';
+    $('edit-bcm-data').max = todayISO();
+    EVAL_FIELDS.forEach(k => $('edit-bcm-' + k).value = target[k] !== null && target[k] !== undefined ? target[k] : '');
+    $('edit-modal-date-label').textContent = `${owner.nome} · avaliação de ${formatDate(target.data)}`;
+    $('edit-bcm-oh').oninput = () => updateOhHintFor(owner.id, 'edit-bcm-oh', 'edit-bcm-oh-hint', evalId);
+    updateOhHintFor(owner.id, 'edit-bcm-oh', 'edit-bcm-oh-hint', evalId);
+    $('edit-eval-modal').classList.add('open');
+    syncBodyScroll();
+  }
+  function closeEditModal() {
+    $('edit-eval-modal').classList.remove('open');
+    syncBodyScroll();
+  }
+  $('edit-eval-modal').addEventListener('click', function (e) { if (e.target === this) closeEditModal(); });
+
+  async function saveEditedBcm() {
+    const evalId = $('edit-eval-id').value;
+    const data = $('edit-bcm-data').value;
+    const vals = readEvalFields('edit-bcm-');
+    const p = patients.find(x => x.id === editEvalPatientId);
+    if (!data || vals.oh === null) { alert('A data e o valor de sobrehidratação (OH) são obrigatórios.'); return; }
+    if (!db || !p) { alert('Sem ligação ao Firebase.'); return; }
+    const v = validateEval(p, vals, evalId);
+    if (v.errors.length) { alert('Valores inválidos:\n\n• ' + v.errors.join('\n• ')); return; }
+    const warnings = [...v.warnings];
+    if ((p.bcm || []).some(b => b.id !== evalId && b.data === data)) warnings.unshift(`Já existe outro registo em ${formatDate(data)} para este doente.`);
+    if (data > todayISO()) warnings.unshift('A data é futura.');
+    if (!confirmWarnings(warnings)) return;
+    // null apaga o campo no Firebase (permite limpar um valor opcional)
+    const updates = { data, oh: vals.oh, vdu: vals.vdu, psp: vals.pseco, pnh: vals.pnormo, patientId: p.id, editadoEm: new Date().toISOString() };
+    try {
+      await db.ref(clinicPath() + '/evaluations/' + evalId).update(updates);
+      closeEditModal();
+      showToast('Avaliação atualizada com sucesso!');
+    } catch (e) { showToast('Erro ao atualizar avaliação: ' + e.message, 'error'); }
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  EDITAR DOENTE
+  // ══════════════════════════════════════════════════════
+  function openEditPatientModal(patientId) {
+    const p = patients.find(x => x.id === patientId);
+    if (!p) return;
+    $('edit-patient-id').value = patientId;
+    $('ep-nome').value = p.nome || '';
+    document.querySelectorAll('input[name="ep-genero"]').forEach(r => r.checked = r.value === p.genero);
+    document.querySelectorAll('input[name="ep-pacemaker"]').forEach(r => r.checked = r.value === p.pacemaker);
+    fillSelect($('ep-medico'), Array.from(new Set([...MEDICOS, p.medico].filter(Boolean))), '— Selecionar médico —');
+    $('ep-turno').value = p.turno || '';
+    $('ep-medico').value = p.medico || '';
+    $('edit-patient-sub').textContent = p.nome || '—';
+    $('edit-patient-modal').classList.add('open');
+    syncBodyScroll();
+  }
+  function closeEditPatientModal() {
+    $('edit-patient-modal').classList.remove('open');
+    syncBodyScroll();
+  }
+  $('edit-patient-modal').addEventListener('click', function (e) { if (e.target === this) closeEditPatientModal(); });
+
+  async function saveEditedPatient() {
+    const id = $('edit-patient-id').value;
+    const nome = $('ep-nome').value.trim().replace(/\s+/g, ' ');
+    const genero = document.querySelector('input[name="ep-genero"]:checked')?.value || '';
+    const pacemaker = document.querySelector('input[name="ep-pacemaker"]:checked')?.value || '';
+    const turno = $('ep-turno').value, medico = $('ep-medico').value;
+    if (!nome || !genero || !pacemaker || !turno || !medico) { alert('Por favor preencha todos os campos.'); return; }
+    if (!db) { alert('Sem ligação ao Firebase.'); return; }
+    const dup = findDuplicateName(nome, id);
+    if (dup && !confirm(`Já existe outro doente com este nome (${dup.turno}, ${dup.medico}). Guardar mesmo assim?`)) return;
+    const old = patients.find(x => x.id === id);
+    if (old && old.pacemaker !== 'Sim' && pacemaker === 'Sim' && !confirm('Ao marcar Pacemaker/CDI, o doente passa a "Não avaliável" e deixa de contar nas estatísticas. Continuar?')) return;
+    try {
+      await db.ref(clinicPath() + '/patients/' + id).update({ nome, genero, pacemaker, turno, medico, editadoEm: new Date().toISOString() });
+      closeEditPatientModal();
+      showToast('Dados do doente atualizados!');
+    } catch (e) { showToast('Erro ao atualizar: ' + e.message, 'error'); }
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  TABELAS DE RESULTADOS (partilhadas por Resultados e Relatórios)
+  // ══════════════════════════════════════════════════════
+  function evalCells(p, b) {
+    if (b.evalType) {
+      const badge = b.evalType === 'invalida'
+        ? '<span class="eval-type-badge eval-type-invalid">⚠ Inválida / sem dados</span>'
+        : '<span class="eval-type-badge eval-type-internado">🏥 Internado / Férias</span>';
+      return `<td>${formatDate(b.data)}</td><td colspan="4">${badge}</td><td><span class="muted">—</span></td>`;
+    }
+    const st = hasOH(b) ? ohStatus(p, b.oh) : null;
+    const ohDisp = st ? `<span class="${st === 'normo' ? 'val-green' : 'val-red'}">${fmtOH(b.oh)}</span>` : '<span class="muted">—</span>';
+    const badge = st === 'normo' ? '<span class="res-status-badge normo" style="font-size:0.7rem">✓ Normo</span>'
+      : st === 'sobre' ? '<span class="res-status-badge sobre" style="font-size:0.7rem">⚠ Sobre</span>' : '<span class="muted">—</span>';
+    return `<td>${formatDate(b.data)}</td><td>${ohDisp}</td><td>${fmtNum(b.vdu, 'L')}</td><td>${fmtNum(b.pseco, 'kg')}</td><td>${fmtNum(b.pnormo, 'kg')}</td><td>${badge}</td>`;
+  }
+
+  // leadCells(p, rowSpan) devolve as células iniciais (nome, etc.)
+  function buildFlatRows(entries, leadCells, emptyText) {
+    const out = [];
+    entries.forEach(({ p, recs }) => {
+      if (p.pacemaker === 'Sim' || !recs.length) {
+        const txt = p.pacemaker === 'Sim' ? 'Não avaliável — Pacemaker/CDI' : emptyText;
+        out.push(`<tr class="flat-patient-first">${leadCells(p, 1)}<td colspan="6" style="color:${p.pacemaker === 'Sim' ? '#999' : '#bbb'};font-style:italic;text-align:center;">${txt}</td></tr>`);
+        return;
+      }
+      recs.forEach((b, idx) => {
+        out.push(idx === 0
+          ? `<tr class="flat-patient-first">${leadCells(p, recs.length)}${evalCells(p, b)}</tr>`
+          : `<tr class="flat-patient-cont">${evalCells(p, b)}</tr>`);
+      });
+    });
+    return out.join('');
+  }
+
+  function renderResults() {
+    const q = ($('res-search').value || '').toLowerCase();
+    const mk = monthState.res;
+    const filtered = patients
+      .filter(p => p.nome.toLowerCase().includes(q) || p.medico.toLowerCase().includes(q) || p.turno.toLowerCase().includes(q))
+      .sort(byName);
+    $('res-count-badge').textContent = plural(filtered.length, 'doente');
+    const container = $('results-list');
+    if (!filtered.length) {
+      container.innerHTML = `<div class="res-empty-section">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        <p>${patients.length ? 'Nenhum resultado encontrado.' : 'Ainda não existem doentes registados.'}</p></div>`;
+      return;
+    }
+    const lead = (p, rs) => `
+      <td rowspan="${rs}" class="flat-name-cell"><div class="flat-name link-name" onclick="openModal('${p.id}')">${escHtml(p.nome)}</div><div class="flat-meta">${escHtml(p.turno)} · ${escHtml(p.medico)}</div></td>
+      <td rowspan="${rs}" class="flat-info-cell"><span class="tag ${p.pacemaker === 'Sim' ? 'tag-yes' : 'tag-no'}" style="font-size:0.68rem">PCM/CDI: ${escHtml(p.pacemaker)}</span></td>`;
+    const rows = buildFlatRows(filtered.map(p => ({ p, recs: recordsFor(p, mk) })), lead,
+      mk !== 'all' ? `Sem avaliação em ${monthLabel(mk)}` : 'Sem avaliações registadas');
+    container.innerHTML = `<div class="flat-table-wrap"><table class="flat-table">
+      <thead><tr><th>Doente</th><th>PCM/CDI</th><th>Data</th><th>OH (%)</th><th>VDU (L)</th><th>Peso Seco (kg)</th><th>Peso Normo (kg)</th><th>Estado</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>`;
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  PRIORIDADES
+  // ══════════════════════════════════════════════════════
+  let prioMode = 'top5';
+  function setPrioMode(m) { prioMode = m; renderPriorities(); }
+
+  function renderPriorities() {
+    $('prio-mode').innerHTML = [
+      ['top5', 'Top 5 por turno'],
+      ['late', 'Todos com ≥ 30 dias ou nunca avaliados'],
+      ['all',  'Todos os doentes'],
+    ].map(([k, l]) => `<button class="month-pill ${prioMode === k ? 'active' : ''}" onclick="setPrioMode('${k}')">${l}</button>`).join('');
+
+    const ICONS = { 'Manhã': '🌅', 'Tarde': '🌇', 'Noite': '🌙' };
+    const buildGrid = (turnos, containerId) => {
+      $(containerId).innerHTML = turnos.map(turno => {
+        const slot = turno.includes('Manhã') ? 'Manhã' : turno.includes('Tarde') ? 'Tarde' : 'Noite';
+        const all = patients
+          .filter(p => p.turno === turno && p.pacemaker !== 'Sim')
+          .map(p => ({ p, dias: daysSinceLastEval(p) }))
+          .sort((a, b) => {
+            if (a.dias === b.dias) return byName(a.p, b.p);
+            if (a.dias === Infinity) return -1;
+            if (b.dias === Infinity) return 1;
+            return b.dias - a.dias;
+          });
+        const shown = prioMode === 'top5' ? all.slice(0, 5) : prioMode === 'late' ? all.filter(x => x.dias >= 30) : all;
+        const cards = !all.length ? `<div class="priority-empty">Sem doentes avaliáveis neste turno</div>`
+          : !shown.length ? `<div class="priority-empty">Nenhum doente com atraso ≥ 30 dias 👍</div>`
+          : shown.map(({ p, dias }, idx) => {
+              const rank = idx + 1;
+              const rankClass = rank <= 3 ? 'rank-' + rank : '';
+              let diasLabel, diasClass, badge, badgeClass;
+              if (dias === Infinity) {
+                diasLabel = 'Nunca avaliado'; diasClass = 'urgent'; badge = 'Sem avaliação'; badgeClass = 'late-high';
+              } else {
+                diasLabel = `Há ${plural(dias, 'dia')}`;
+                diasClass = dias >= 60 ? 'urgent' : dias >= 30 ? 'warning' : '';
+                badge = dias >= 60 ? `${dias}d atraso` : `${dias}d`;
+                badgeClass = dias >= 60 ? 'late-high' : dias >= 30 ? 'late-med' : 'late-low';
+              }
+              const last = latestValid(p, 'all');
+              const lastTxt = last ? ` · ${fmtOH(last.oh)}` : '';
+              return `<div class="priority-card" onclick="openModal('${p.id}')" title="Clique para registar avaliação">
+                <div class="priority-rank ${rankClass}">${rank}</div>
+                <div class="priority-info">
+                  <div class="priority-name">${escHtml(p.nome)}</div>
+                  <div class="priority-days ${diasClass}">${diasLabel}${lastTxt} · ${escHtml(p.medico)}</div>
+                </div>
+                <span class="priority-badge ${badgeClass}">${badge}</span>
+                <button class="priority-edit" onclick="event.stopPropagation();openEditPatientModal('${p.id}')" title="Editar dados do doente">✎</button>
+              </div>`;
+            }).join('');
+        const lateCount = all.filter(x => x.dias >= 30).length;
+        return `<div class="priority-col">
+          <div class="priority-col-header ${{ 'Manhã': 'manha', 'Tarde': 'tarde', 'Noite': 'noite' }[slot]}">
+            ${ICONS[slot]} ${turno}
+            <div style="margin-left:auto;text-align:right;"><div class="pch-sub">${plural(all.length, 'doente')} · ${lateCount} ≥30d</div></div>
+          </div>
+          <div class="priority-list ${prioMode !== 'top5' ? 'scroll' : ''}">${cards}</div>
+        </div>`;
+      }).join('');
+    };
+    buildGrid(['Par Manhã', 'Par Tarde', 'Par Noite'], 'priority-par');
+    buildGrid(['Ímpar Manhã', 'Ímpar Tarde', 'Ímpar Noite'], 'priority-impar');
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  RELATÓRIOS
+  // ══════════════════════════════════════════════════════
+  function getReportData() {
+    const mk = monthState.rep;
+    const entries = [];
+    let totalEvals = 0, normoCount = 0, sobreCount = 0, naCount = 0, semCount = 0;
+    [...patients].sort(byName).forEach(p => {
+      const isPace = p.pacemaker === 'Sim';
+      let recs;
+      if (mk === 'all') { const r = latestValid(p, 'all') || latestAny(p, 'all'); recs = r ? [r] : []; }
+      else recs = recordsFor(p, mk);
+      if (isPace) { naCount++; recs = []; }
+      else {
+        const st = hydrationStatusForMonth(p, mk);
+        if (st === 'normo') normoCount++; else if (st === 'sobre') sobreCount++; else semCount++;
+      }
+      totalEvals += recs.filter(hasOH).length;
+      entries.push({ p, recs });
+    });
+    return { mk, entries, totalEvals, normoCount, sobreCount, naCount, semCount };
+  }
+
+  function renderReportPreview() {
+    const r = getReportData();
+    const item = (color, svg, num, lbl) => `<div class="report-summary-item">
+      <div class="rs-icon" style="background:${color}"><svg viewBox="0 0 24 24">${svg}</svg></div>
+      <div><div class="rs-num">${num}</div><div class="rs-lbl">${lbl}</div></div></div>`;
+    $('rep-summary-bar').innerHTML =
+      item('var(--accent2)', '<circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>', patients.length, 'Doentes') +
+      item('#6a3ab2', '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>', r.totalEvals, 'Avaliações válidas') +
+      item('var(--green)', '<polyline points="20 6 9 17 4 12"/>', r.normoCount, 'Normohidratados') +
+      item('var(--red)', '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>', r.sobreCount, 'Sobrehidratados') +
+      item('#94a3b8', '<circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/>', r.semCount, 'Sem aval. válida') +
+      item('#c07800', '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>', r.naCount, 'Não Avaliáveis');
+
+    const wrap = $('rep-preview-wrap');
+    if (!r.entries.length) {
+      wrap.innerHTML = `<div class="empty-state" style="padding:40px"><p>Sem dados para o período selecionado.</p></div>`;
+      return;
+    }
+    const lead = (p, rs) => `
+      <td rowspan="${rs}" class="flat-name-cell"><div class="flat-name">${escHtml(p.nome)}</div><div class="flat-meta">${escHtml(p.genero)} · ${escHtml(p.turno)}</div></td>
+      <td rowspan="${rs}" class="flat-info-cell" style="white-space:nowrap">${escHtml(p.medico)}</td>
+      <td rowspan="${rs}" class="flat-info-cell"><span class="tag ${p.pacemaker === 'Sim' ? 'tag-yes' : 'tag-no'}" style="font-size:0.68rem">PCM/CDI: ${escHtml(p.pacemaker)}</span></td>`;
+    wrap.innerHTML = `<div class="flat-table-wrap"><table class="flat-table">
+      <thead><tr><th>Doente</th><th>Médico</th><th>PCM/CDI</th><th>Data</th><th>OH (%)</th><th>VDU (L)</th><th>Peso Seco (kg)</th><th>Peso Normo (kg)</th><th>Estado</th></tr></thead>
+      <tbody>${buildFlatRows(r.entries, lead, 'Sem avaliação no período')}</tbody></table></div>`;
+  }
+
+  function downloadReport() {
+    if (typeof XLSX === 'undefined') { alert('Biblioteca Excel ainda a carregar. Aguarde um momento e tente novamente.'); return; }
+    const r = getReportData();
+    const periodLabel = monthLabel(r.mk);
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const timeStr = now.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+    const HEADERS = ['Nome do Doente','Peso Seco (kg)','Peso NH (kg)','V. Ureia (L)','Data da Avaliação','OH (%)','Estado','Turno','Médico','Género'];
+
+    const dataRows = [];
+    r.entries.forEach(({ p, recs }) => {
+      const base = { 'Turno': p.turno, 'Médico': p.medico, 'Género': p.genero };
+      if (p.pacemaker === 'Sim' || !recs.length) {
+        dataRows.push({ 'Nome do Doente': p.nome, 'Peso Seco (kg)': null, 'Peso NH (kg)': null, 'V. Ureia (L)': null, 'Data da Avaliação': null, 'OH (%)': null,
+          'Estado': p.pacemaker === 'Sim' ? 'Não avaliável (PCM/CDI)' : 'Sem avaliação no período', ...base });
+        return;
+      }
+      recs.forEach(b => {
+        const estado = b.evalType === 'invalida' ? 'Avaliação inválida'
+          : b.evalType === 'internado' ? 'Internado / Férias'
+          : hasOH(b) ? (ohStatus(p, b.oh) === 'normo' ? 'Normohidratado' : 'Sobrehidratado') : '—';
+        dataRows.push({
+          'Nome do Doente': p.nome, 'Peso Seco (kg)': b.pseco ?? null, 'Peso NH (kg)': b.pnormo ?? null, 'V. Ureia (L)': b.vdu ?? null,
+          'Data da Avaliação': b.data ? formatDate(b.data) : null, 'OH (%)': hasOH(b) ? b.oh : null, 'Estado': estado, ...base
+        });
+      });
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(dataRows, { header: HEADERS });
+    ws['!cols'] = [30, 14, 12, 13, 18, 10, 24, 16, 18, 10].map(wch => ({ wch }));
+
+    const headerStyle = {
+      font: { bold: true, color: { rgb: 'FFFFFF' }, name: 'Arial', sz: 10 },
+      fill: { fgColor: { rgb: '1A4D7C' }, patternType: 'solid' },
+      alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+      border: { bottom: { style: 'medium', color: { rgb: 'FFFFFF' } }, right: { style: 'thin', color: { rgb: 'FFFFFF' } } },
+    };
+    const cols = ['A','B','C','D','E','F','G','H','I','J'];
+    cols.forEach(c => { if (ws[c + '1']) ws[c + '1'].s = headerStyle; });
+
+    const fill = rgb => ({ fgColor: { rgb }, patternType: 'solid' });
+    const font = (extra = {}) => ({ name: 'Arial', sz: 10, ...extra });
+    const center = { horizontal: 'center', vertical: 'center' }, left = { horizontal: 'left', vertical: 'center' };
+    const border = { bottom: { style: 'thin', color: { rgb: 'E8EDF3' } } };
+    dataRows.forEach((row, i) => {
+      const estado = row['Estado'];
+      const isNormo = estado === 'Normohidratado', isSobre = estado === 'Sobrehidratado';
+      const isSpecial = estado === 'Avaliação inválida' || estado === 'Internado / Férias';
+      const isNA = estado.startsWith('Não avaliável') || estado.startsWith('Sem avaliação');
+      const rowFill = isNormo ? fill('EDF7F3') : isSobre ? fill('FDF0F0') : isSpecial ? fill('FFF8EE') : i % 2 ? fill('F4F8FF') : null;
+      cols.forEach((c, ci) => {
+        const addr = c + (i + 2);
+        if (!ws[addr]) ws[addr] = { t: 'z', v: null };
+        const colName = HEADERS[ci];
+        let s;
+        if (colName === 'OH (%)') s = { font: isNormo ? font({ bold: true, color: { rgb: '2A7A5A' } }) : isSobre ? font({ bold: true, color: { rgb: 'B83232' } }) : font(), alignment: center };
+        else if (colName === 'Estado') s = { font: isNormo ? font({ bold: true, color: { rgb: '2A7A5A' } }) : isSobre ? font({ bold: true, color: { rgb: 'B83232' } }) : isSpecial ? font({ color: { rgb: 'A0620A' } }) : isNA ? font({ color: { rgb: '888888' }, italic: true }) : font(), alignment: left };
+        else if (['Peso Seco (kg)','Peso NH (kg)','V. Ureia (L)','Data da Avaliação'].includes(colName)) s = { font: font(), alignment: center };
+        else s = { font: font(), alignment: left };
+        s.border = border;
+        if (rowFill) s.fill = rowFill;
+        ws[addr].s = s;
+      });
+    });
+    XLSX.utils.book_append_sheet(wb, ws, 'Avaliações BCM');
+
+    const wsRes = XLSX.utils.aoa_to_sheet([
+      ['Relatório BCM — ' + periodLabel],
+      [CLINICS[currentClinic].label],
+      ['Gerado em: ' + dateStr + ' às ' + timeStr],
+      [],
+      ['Resumo do Período'],
+      ['Total de Doentes', patients.length],
+      ['Avaliações válidas', r.totalEvals],
+      ['Normohidratados', r.normoCount],
+      ['Sobrehidratados', r.sobreCount],
+      ['Sem avaliação válida', r.semCount],
+      ['Não Avaliáveis (PCM/CDI)', r.naCount],
+      [],
+      ['OH = sobrehidratação relativa (%). Limites: ≤ 15 % (homens), ≤ 13 % (mulheres).'],
+    ]);
+    wsRes['!cols'] = [{ wch: 30 }, { wch: 14 }];
+    const sec = { font: { bold: true, name: 'Arial', sz: 11, color: { rgb: '1A4D7C' } }, fill: fill('DDEEFF') };
+    if (wsRes['A1']) wsRes['A1'].s = { font: { bold: true, name: 'Arial', sz: 14, color: { rgb: '1A4D7C' } } };
+    if (wsRes['A2']) wsRes['A2'].s = { font: font({ color: { rgb: '5A6A80' } }) };
+    if (wsRes['A3']) wsRes['A3'].s = { font: font({ color: { rgb: '5A6A80' }, italic: true }) };
+    if (wsRes['A5']) wsRes['A5'].s = sec;
+    if (wsRes['B5']) wsRes['B5'].s = sec;
+    ['A8','B8'].forEach(a => { if (wsRes[a]) wsRes[a].s = { font: font({ bold: true, color: { rgb: '2A7A5A' } }) }; });
+    ['A9','B9'].forEach(a => { if (wsRes[a]) wsRes[a].s = { font: font({ bold: true, color: { rgb: 'B83232' } }) }; });
+    if (wsRes['A13']) wsRes['A13'].s = { font: font({ color: { rgb: '5A6A80' }, italic: true }) };
+    XLSX.utils.book_append_sheet(wb, wsRes, 'Resumo');
+
+    XLSX.writeFile(wb, `relatorio-bcm-${CLINICS[currentClinic].path}-${r.mk === 'all' ? 'completo' : r.mk}-${todayISO()}.xlsx`);
+    showToast('Relatório Excel descarregado!');
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  TECLADO: Esc fecha a janela de cima
+  // ══════════════════════════════════════════════════════
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if ($('edit-eval-modal').classList.contains('open')) return closeEditModal();
+    if ($('edit-patient-modal').classList.contains('open')) return closeEditPatientModal();
+    if ($('bcm-modal').classList.contains('open')) return closeModal();
+    if ($('drill-modal').classList.contains('open')) return closeDrill();
+    hideNamesTip();
+  });
+</script>
+</body>
+</html>
